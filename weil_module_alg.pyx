@@ -39,7 +39,7 @@ from sage.rings.finite_rings.finite_field_constructor import FiniteField
 from psage.matrix.matrix_complex_dense import Matrix_complex_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.all import MatrixSpace,is_odd
-from sage.rings.complex_number cimport ComplexNumber
+from sage.rings.complex_mpfr cimport ComplexNumber
 from sage.rings.complex_field import ComplexField
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
