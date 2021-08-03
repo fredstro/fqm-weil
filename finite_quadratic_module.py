@@ -711,9 +711,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             raise TypeError("Argument n (= {0}) must be an integer.".format(n))
 
         
-    def __cmp__(self, other):
+    def __eq__(self, other):
         r"""
-        Return 1 if other is a quadratic module having the same generator names,
+        Return True if other is a quadratic module having the same generator names,
         satisfying the same relations and having the same Gram matrix as this module.
 
         EXAMPLES NONE
@@ -721,11 +721,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         TODO: compare names
         """
         # compare two quadmodules via their relations and Gram-Matrix
-        if type(other) is type(self): 
-            if (self.__R == other.__R) and (self.gram() == other.gram()):
-                return 0
-        return -1
-        #Why is 0 returned? in the explanation it says return 1
+        return all([
+            type(other) == type(self),
+            self.__R == other.__R,
+            self.gram() == other.gram()
+            ])
 
     def twist(self, s):
         r"""
