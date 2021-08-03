@@ -131,15 +131,15 @@ cdef class Vector_complex_dense(FreeModuleElement):
             mpc_init2(self._entries[i],self._prec)
         if isinstance(x, (list, tuple)) or (hasattr(x,'parent') and x.parent() == parent) :
             if len(x) != self._degree:
-                raise TypeError, "entries must be a list of length %s"%self._degree
+                raise TypeError("entries must be a list of length %s"%self._degree)
             for i from 0 <= i < self._degree:
                 z = MPComplexNumber(self._base_ring,x[i])
                 mpc_set(self._entries[i], z.value,rnd)
             return
         elif x != 0:
-            print "type(x)=",type(x)
-            print "z=",MPComplexNumber(self._base_ring,x[0])
-            raise TypeError, "can't initialize vector from nonzero non-list"
+            print("type(x)=",type(x))
+            print("z=",MPComplexNumber(self._base_ring,x[0]))
+            raise TypeError("can't initialize vector from nonzero non-list")
         else:
             for i from 0 <= i < self._degree:
                 mpc_set_ui(self._entries[i], 0,rnd)
@@ -336,7 +336,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
             sage: v.pairwise_product(w)
             (4, 6, -6)
         """
-        print "in pwp"
+        print("in pwp")
         cdef Vector_complex_dense z, r
         r = right
         z = self._new_c()

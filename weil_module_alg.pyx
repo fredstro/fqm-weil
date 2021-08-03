@@ -40,7 +40,7 @@ from psage.matrix.matrix_complex_dense import Matrix_complex_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.all import MatrixSpace,is_odd
 from sage.rings.complex_mpfr cimport ComplexNumber
-from sage.rings.complex_field import ComplexField
+from sage.rings.complex_mpfr import ComplexField
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber
@@ -166,10 +166,10 @@ cpdef cython_get_gammaN_conjcl_reps(long N):
     if p == 3:
         eps = 2
     for ii in range(0,(p-1)//2+1):
-        print ii, kronecker(ii,p)
+        print(ii, kronecker(ii,p))
         if ii != 0 and kronecker(ii,p)==-1:
             eps=ii
-            print eps, kronecker(ii,p)
+            print(eps, kronecker(ii,p))
             break
     cl=list()
     cl.append([[1,0,0,1],1])
@@ -484,8 +484,8 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
     norms_c=W._get_all_norm_alpha_cs(c)
     #norms_c_old=W._get_all_norm_alpha_cs_old(c)
     if verbose>0:
-        print "xi=",xi
-        print "norms=",norms_c
+        print("xi=",xi)
+        print("norms=",norms_c)
     #print "11"
 
     n = W._n; level = W._level
@@ -505,7 +505,7 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
     else:
         si=CF(1)
     if verbose>0:
-        print "si=",si
+        print("si=",si)
     for na in range(n):
         for nb in range(n):
             if filter <> None and filter[na,nb]==0:
@@ -523,12 +523,12 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
                 continue
             arg=a*ngamma_c+b*int(level*W.Bi(gi,nbm))-b*d*int(level*W.Q(nbm))
             if verbose>0 and na==1 and nb==0:
-                print "ngamma_c[{0}]={1}".format(gi,ngamma_c)
-                print "arg=",               a,"*",ngamma_c,"+",b,"*",W.Bi(gi,nbm),"-",b,"*",d,"*",W.Q(nbm)
-                print "arg=",arg
+                print("ngamma_c[{0}]={1}".format(gi,ngamma_c))
+                print("arg=",               a,"*",ngamma_c,"+",b,"*",W.Bi(gi,nbm),"-",b,"*",d,"*",W.Q(nbm))
+                print("arg=",arg)
             r[na,nb]=si*xi*zl**(arg)
             if verbose>0 and na==1 and nb==0:
-                print "r[",na,nb,"]=",r[na,nb]
+                print("r[",na,nb,"]=",r[na,nb])
     fac = CF.base_ring()(W._get_lenDc(c))
     fac = fac / CF.base_ring()(n)
     fac = fac.sqrt()
