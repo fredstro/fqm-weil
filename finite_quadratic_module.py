@@ -91,7 +91,6 @@ from __future__ import division
 from builtins import map
 from builtins import str
 from builtins import range
-from past.utils import old_div
 from sage.functions.other                 import floor
 from sage.arith.all                       import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
@@ -1699,12 +1698,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 ###################################
     
 
-from sage.groups.group_homset import GroupHomset_generic
 from sage.categories.homset import HomsetWithBase
 from sage.categories.commutative_additive_groups import CommutativeAdditiveGroups
 from sage.categories.morphism import Morphism
 
-class FiniteQuadraticModuleHomset (GroupHomset_generic):
+class FiniteQuadraticModuleHomset (HomsetWithBase):
     r"""
     Implements the set of morphisms of a quadratic module into another.
     
@@ -3927,7 +3925,7 @@ class JordanDecomposition(SageObject):
                 if eps == -1:
                     t = (t + 4) % 8
                 # TODO: Check if this should really use the old integer division
-                n2 = old_div((n - t),2) % 4
+                n2 = ((n - t) // 2) % 4
                 n1 = n - n2
                 # print "n1:", n1, "n2:", n2, "t:", t
                 list1 = [sum([binomial(n1,k) for k in range(j,n1+1,4)]) for j in range(0,4)]
