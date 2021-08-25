@@ -159,7 +159,7 @@ cdef long BBl(long j, long *Bi, long *ed, int r) nogil:
 
 cpdef cython_invariants_dim(FQM, use_reduction = True, proof = True, debug=1):
     if debug > 0:
-        print "Computing invariants dimension of {}".format(FQM)
+        print("Computing invariants dimension of {}".format(FQM))
     if FQM.signature() % 2 != 0:
         return 0
     dim = 0
@@ -190,21 +190,22 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     cdef int l = long(FQM.level())
     cdef long n = long(FQM.order())
     cdef long ii,jj = 0
-    if debug > 1: print "l = ", l
+    if debug > 1: print("l = ", l)
     
     try:
         s = FQM.sigma_invariant()
         s2 = Integer( s**2)
     except:
         return span( [], K)
-
+    if debug > 0: print("s2=",s2)
     if debug > 0: t = walltime()
-    cdef long[:] table = np.ndarray(l, dtype=long)
+    # Having a numpy cdef'd table doesn't work with QQbar
+    cdef list table = list(range(l))
     cdef list table0 = list()
 
     cdef long q = K.characteristic()
     if q > 0:
-        if debug > 0: print 'positive characteristic: ', q
+        if debug > 0: print('positive characteristic: ', q)
         if 1 != q % l:
             raise ValueError( '%d must be = 1 modulo %d' %(q, l))
         if not q % 4 == 1:
@@ -242,15 +243,15 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 w = (zz+zz**(-1))
                 w = w*AA
         if debug > 0:
-            print "w = {}".format(w)
+            print("w = {}".format(w))
         for ii in range(l):
             zt = z**ii
             if debug > 0:
-                print "zt = {}**{} = {}".format(z, ii, zt)
+                print("zt = {}**{} = {}".format(z, ii, zt))
             table[ii] = long(K(s)*K(zt + s2 * zt**-1)/K(w))
         if proof and q > 0:
             if debug > 0: tt = walltime()
-            if debug > 0: print "proof"
+            if debug > 0: print("proof")
             L = QQbar
             zl = L.zeta(l)
             if s.parent() != ZZ:
@@ -261,18 +262,18 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             # print sl
             wl = L(FQM.order()).sqrt()
             table0 = [sl*(zl**p)/wl for p in range(l)]
-            if debug > 0: print table0
-            if debug > 0: print "table0: {0}".format(walltime(tt))
+            if debug > 0: print(table0)
+            if debug > 0: print("table0: {0}".format(walltime(tt)))
     else:
         try:
             w = K(FQM.order()).sqrt()
         except:
             raise RuntimeError("K = {0} does not contain a square-root of |FQM| = {1}".format(K,FQM.order()))
-    if debug > 0: print q,w
+    if debug > 0: print(q,w)
 
     if 0 == q:
         if isinstance(K,NumberField_cyclotomic):
-            if debug > 0: print 'cyclotomic'
+            if debug > 0: print('cyclotomic')
             o = K.gen().multiplicative_order()
             K = CyclotomicField(o, embedding=CC(QQbar.zeta(o)))
             z = K.gen()
@@ -289,21 +290,21 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 table = [s*((z**p) - (z**p).conjugate())/w for p in range(l)]
         else:
             if K == QQbar:
-                if debug > 0: print 'QQbar'
+                if debug > 0: print('QQbar')
                 z = K.zeta(l)
-                if debug > 1: print "z=",z
+                if debug > 1: print("z=",z)
                 if s.parent() != ZZ:
                     z8 = K.zeta(8)
                     s = z8**(-FQM.signature())
-                    if debug > 0: print "s={0}".format(s)
+                    if debug > 0: print("s={0}".format(s))
             else:
                 z = K(exp(2*pi*I/l))
-            if 1 == s2: 
+            if 1 == s2:
                 table = [2*s*(z**p).real()/w for p in range(l)]
             else:
                 table = [s*(z**p-z**(-p))/w for p in range(l)]
-    if debug > 0: print len(table), [table[i] for i in range(l)]
-    if debug > 0: print '%f: init, table'%(walltime(t))
+    if debug > 0: print(len(table), [table[i] for i in range(l)])
+    if debug > 0: print('%f: init, table'%(walltime(t)))
 
     if debug > 0: t = walltime()
     cdef long* ed = NULL
@@ -314,7 +315,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         raise MemoryError('Cannot allocate memory.')
     for i,d in enumerate(FQM.elementary_divisors()):
         ed[i] = long(d)
-    if debug > 1: print fed
+    if debug > 1: print(fed)
 
     J = FQM.__dict__['_FiniteQuadraticModule_ambient__J']
     #sig_on()
@@ -331,7 +332,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         for j in range(r):
             JJ[i][j] =  long((2*l*J[i,j]))
     #sig_off()
-    if debug > 0: print 'Gram matrix conversion: {0}'.format(walltime(t))
+    if debug > 0: print('Gram matrix conversion: {0}'.format(walltime(t)))
 
     cdef list Ml = list()
     cdef long ni = 0
@@ -342,9 +343,9 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     
     for i in range(n):
         #x = cython_elt(i,ed)
-        if debug > 1: print "B=", B(i,i,JJ,ed,r)
+        if debug > 1: print("B=", B(i,i,JJ,ed,r))
         j = int(B(i,i,JJ,ed,r)/2) % l
-        if debug > 1: print "j=",j
+        if debug > 1: print("j=",j)
         kk = _neg_index(i,ed,r)
         #print i, kk, j
         f = 1
@@ -359,8 +360,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 if j == 0:
                     ni = ni + 1
                     #print 'ni: ', ni
-    if debug > 0: print '%f: +- reps'%(walltime(t)); t = walltime()
-    if debug > 0: print 'ni = %d'%(ni)
+    if debug > 0: print('%f: +- reps'%(walltime(t))); t = walltime()
+    if debug > 0: print('ni = %d'%(ni))
     n = len(Ml)
 
     Ml.sort(norm_cmp)
@@ -371,8 +372,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         Mli[ii] = xx[0]
         Mlf[ii] = xx[2]
     
-    if debug > 0: print 'n = %d'%(n)
-    if debug > 0: print '%f: sorting'%(walltime(t)); t = walltime()
+    if debug > 0: print('n = %d'%(n))
+    if debug > 0: print('%f: sorting'%(walltime(t))); t = walltime()
 
     #Now compute and cache bilinear forms
     #we use that it is symmetric and that we only need
@@ -404,7 +405,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         sig_free(JJ)
      
     if debug > 0:
-        print 'bilinear form computations: {0}'.format(walltime(t))
+        print('bilinear form computations: {0}'.format(walltime(t)))
         t = walltime()
 
     if debug > 0: t = walltime()
@@ -421,7 +422,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             elif i<ni and i>j:
                 H[j,i] = table[p]*Mlf[i]
             #if debug > 1: print "i={0}, j={1}, H[i,j] = {2}, p = {3}".format(i,j,HH[i,j],p)
-    if debug > 0: print '%f: init of H'%(walltime(t)); t = walltime()
+    if debug > 0: print('%f: init of H'%(walltime(t))); t = walltime()
     #if debug > 0: print A
     #if debug > 1: print A.str()
     #print H.str()
@@ -443,7 +444,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             for i in range(j,n):
                 p = BB[j][i-j]
                 if debug > 1:
-                    print "i={}, j={}, p={}".format(i, j, p)
+                    print("i={}, j={}, p={}".format(i, j, p))
                 M[i,j] = table0[p]
                 if Ml[j][2] == 2:
                     M[i,j] += eps*table0[l-p]
@@ -451,9 +452,9 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                    M[j,i] = M[i,j]
                    if Ml[i][2] == 2:
                        M[j,i] += eps*p
-        if debug > 1: print table0, M
+        if debug > 1: print(table0, M)
         R = (Ml, ni, U, V, M)
-        if debug > 0: print "Matrix M: {0}".format(walltime(t))
+        if debug > 0: print("Matrix M: {0}".format(walltime(t)))
     else:
         R = (Ml, ni, U,V)
 
@@ -498,12 +499,12 @@ cpdef cython_invariants(FQM, use_reduction = True, proof = False, checks = False
     t = walltime()
     X = U.right_kernel()
     if debug > 0:
-        print '%f: kernel'%(walltime(t))
-        print "dimension kernel: {0}".format(X.dimension())
+        print('%f: kernel'%(walltime(t)))
+        print("dimension kernel: {0}".format(X.dimension()))
 
     t = walltime()
     Sp = span([V*x for x in X.basis()], K)
-    if debug > 0: print '%f: span'%(walltime(t))
+    if debug > 0: print('%f: span'%(walltime(t)))
 
     if debug > 2:
         return U,V,X
@@ -516,7 +517,7 @@ cpdef cython_invariants(FQM, use_reduction = True, proof = False, checks = False
         NN = M.matrix_from_rows(range(ni,M.dimensions()[0]))
         V1 = []
         for v in Sp.basis():
-            if debug > 0: print v
+            if debug > 0: print(v)
             vv = vector([reconstruction(x) for x in v])
             a = N*vv-vv
             b = NN*vv
@@ -525,13 +526,13 @@ cpdef cython_invariants(FQM, use_reduction = True, proof = False, checks = False
                 vv = vector([x.lift_centered() for x in v])
                 a = N*vv-vv
                 b = NN*vv
-            if debug >1: print vv, a, b
+            if debug >1: print(vv, a, b)
             if not (a == 0 and b == 0):
                 raise RuntimeError("Could not show that mod {0} invariant {1} lifts.".format(K.characteristic(),vv))
             else:
                 V1.append(vv)
         V1 = span(V1)
-        if debug > 0: print "proof: {0}".format(walltime(tt))
+        if debug > 0: print("proof: {0}".format(walltime(tt)))
     if checks and K.characteristic() > 0:
         # Also check the multiplicity of the eigenvalue 1:
         f = N.characteristic_polynomial()
