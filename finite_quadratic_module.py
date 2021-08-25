@@ -196,7 +196,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         self.__iM = R
         self.__iG = self._reduce_mat(G);
-
+        self.__iM.set_immutable()
+        self.__iG.set_immutable()
+        # Also keep the input 'check' and generator names
+        self._check = check
+        self._names = names
         # We replace $__iM$ by the unique $__R$ in $__iM * GL(n,\ZZ)$ which is
         # in lower Hermite normal form (i.e. is lower triangular and the rows
         # are reduced modulo their rightmost nonzero element).
@@ -255,9 +259,13 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         self._zero = FiniteQuadraticModuleElement(self, 0, can_coords = True)
         # list of possible x_c's
         self._xcs={}
-        
-        
-    
+
+    def __hash__(self):
+        return hash(self._cache_key())
+
+    def _cache_key(self):
+        return ('FiniteQuadraticModule_ambient', self.__iM, self.__iG, self._check, self._names)
+
     ###################################
     ## Introduce myself ...
     ###################################
@@ -2343,6 +2351,11 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
         else:
             raise TypeError("Argument x (= {0}) is of wrong type.".format(x))
 
+    def _cache_key(self):
+        return ('FiniteQuadraticModuleElement', tuple(self.__intl_rep), self.parent())
+
+    def __hash__(self):
+        return hash(self._cache_key())
 
     ###################################
     ## Introduce myself ...
