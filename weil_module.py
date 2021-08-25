@@ -32,7 +32,7 @@ REFERENCES:
 
 EXAMPLES::
 
-
+    sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
     sage: F=FiniteQuadraticModule('5^1')
 
 
@@ -303,7 +303,8 @@ class WeilModule (FormalSums):
 
         EXAMPLES::
 
-        
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+        sage: from psage.modules.weil_module import WeilModule
         sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
         sage: W = WeilModule(F)
         sage: A = SL2Z([1,2,1,3])
@@ -332,10 +333,15 @@ class WeilModule (FormalSums):
         Return the trace of the matrix A in Mp(2,Z) or SL(2,Z)
         as endomorphism of $K[A]$.
 
-        EXAMPLES
-        F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
-        W = WeilModule(F)
-        A = SL2Z([1,2,1,3])
+        EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+        sage: from psage.modules.weil_module import WeilModule
+        sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+        sage: W = WeilModule(F)
+        sage: A = SL2Z([1,2,1,3])
+        sage: W.trace(A)
+         [3, 1/3]
         """
         # We only need the diagonal elements of rho(A)
         n=len(list(self._QM))
@@ -813,6 +819,8 @@ class WeilModuleElement (FormalSum):
     r"""
 ss    Describes an element of a Weil module $K[A]$.
     """
+    def _cache_key(self):
+        return ('WeilModuleElement', tuple(self._data), self._parent)
 
     def __init__(self,d,parent=None, check = True,verbose=0):
         r"""
@@ -822,13 +830,15 @@ ss    Describes an element of a Weil module $K[A]$.
                  a finite quadratic module $A$ of level $l$ and $k$ an element
                  of the field $K$ of the $l$-th roots of unity.
 
-        EXAMPLES:
+        EXAMPLES::
 
-        
-           F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
-           W = WeilModule(F)
-           a,b = F.gens()
-           z = W(a+5*b)
+           sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+           sage: from psage.modules.weil_module import WeilModule
+           sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+           sage: W = WeilModule(F)
+           sage: a,b = F.gens()
+           sage: z = W(a+5*b); z
+           e0 + 2*e1
            
         """
         ## If d is just a single group element we make a list
@@ -840,7 +850,9 @@ ss    Describes an element of a Weil module $K[A]$.
             parent = WeilModule(d.parent())
         if not hasattr(parent,'_is_WeilModule'):
             raise TypeError("Call as WeilModuleElement(W,d) where W=WeilModule. Got W={0}".format(parent))
-        if not isinstance(d,list):            
+        if isinstance(d,tuple):
+            d = list(d)
+        if not isinstance(d,list):
             if hasattr(d.parent(),"_is_FiniteQuadraticModule_ambient"):
                 # print "Is instance!"
                 x = d
