@@ -24,29 +24,42 @@ r"""
   - Nils Skoruppa <nils.skoruppa@gmail.com>
   - Stephan Ehlen <stephan.j.ehlen@gmail.com>
 
- EXAMPLES::
+    Comments (doctest can not do magic functions like %timeit):
+    Note that the below invariants ar enot the same as are currently produced.
 
-  sage: A = FiniteQuadraticModule('5^2')
-  sage: %time X=cython_invariants(A)
-  QQbar
-  0.036002: table
-  [5, 5]
-  Gram matrix conversion: 0.0
-  0.000000: +- reps
-  ni = 5
-  n = 13
-  0.000000: sorting
-  0.028001: init of H
-  0.616040: kernel
-  0.072004: span
-  CPU times: user 1.16 s, sys: 0.04 s, total: 1.20 s
-  Wall time: 1.25 s
-  sage: X
-  ([(0, 0, 2), (7, 0, 1), (8, 0, 1), (11, 0, 1), (14, 0, 1)],
-  Vector space of degree 5 and dimension 2 over Algebraic Field
-  Basis matrix:
-  [ 1.000000000000000?                   0  1.000000000000000?  1.000000000000000?             0.?e-16]
-  [                  0  1.000000000000000? -1.000000000000000? -1.000000000000000?  1.000000000000000?])
+    A = FiniteQuadraticModule('5^2')
+    %timeit X=cython_invariants(A)
+      QQbar
+      0.036002: table
+      [5, 5]
+      Gram matrix conversion: 0.0
+      0.000000: +- reps
+      ni = 5
+      n = 13
+      0.000000: sorting
+      0.028001: init of H
+      0.616040: kernel
+      0.072004: span
+      CPU times: user 1.16 s, sys: 0.04 s, total: 1.20 s
+      Wall time: 1.25 s
+      X
+        ([(0, 0, 2), (7, 0, 1), (8, 0, 1), (11, 0, 1), (14, 0, 1)],
+          Vector space of degree 5 and dimension 2 over Algebraic Field
+          Basis matrix:
+          [ 1.000000000000000?                   0  1.000000000000000?  1.000000000000000?             0.?e-16]
+          [                  0  1.000000000000000? -1.000000000000000? -1.000000000000000?  1.000000000000000?])
+
+    EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+        sage: from psage.modules.weil_invariants import cython_invariants
+        sage: A = FiniteQuadraticModule('5^2')
+        sage: X=cython_invariants(A); X
+        ([(0, 0, 1), (7, 0, 2), (8, 0, 2), (11, 0, 2), (14, 0, 2)],
+         Vector space of degree 5 and dimension 2 over Finite Field of size 61
+         Basis matrix:
+         [ 1  0  1  1  0]
+         [ 0  1 60 60  1])
 """
 
 #from psage.modules.finite_quadratic_module import *
@@ -100,10 +113,10 @@ cdef long* _elt(long ii, long *ed, int r) nogil:
     cdef long c = 0
     for jj in range(0,r):
         md = ed[jj]
-        c = ii%md
+        c = ii % md
         eltl[jj] = c
         ii = ii - c
-        ii = ii/md
+        ii = ii // md
     return eltl
 
 cdef long _neg_index(long ii, long *ed, int r) nogil:
@@ -363,8 +376,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     if debug > 0: print('%f: +- reps'%(walltime(t))); t = walltime()
     if debug > 0: print('ni = %d'%(ni))
     n = len(Ml)
-
-    Ml.sort(norm_cmp)
+    from operator import itemgetter
+    Ml.sort(key=itemgetter(1))
     cdef long *Mli = NULL
     Mli = <long*> sig_malloc(sizeof(long)*n)
     cdef long[:] Mlf = np.ndarray(n, dtype=int)
