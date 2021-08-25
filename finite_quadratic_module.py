@@ -300,7 +300,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         n = self.ngens()
         v = vector(PolynomialRing(QQ, 'x', n).gens())
-        gens = ', '.join([x for x in self._names])
+        gens = ', '.join([str(x) for x in self.gens()])
         form = v.dot_product(self.gram() * v)
         return 'Finite quadratic module in %s generators:\n gens: %s\n form: %s' \
                %(n, gens, form)
@@ -631,6 +631,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                             self.gram().block_sum(B.gram()), \
                             False)
 
+    def __rmul__(self, left):
+        return self.__mul__(left)
 
     def __mul__(self, _n):
         r"""
@@ -888,8 +890,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         if not isinstance(U, FiniteQuadraticModule_subgroup) or U.ambience() is not self or not U.is_isotropic():
             raise ValueError("{0}: not an isotropic subgroup".format(U))
         V = U.dual()
-        K = matrix(V)
-        return FiniteQuadraticModule(K**(-1)*matrix(U), K.transpose()*self.__J*K)
+        K = V._matrix_()
+        return FiniteQuadraticModule(K**(-1)*U._matrix_(), K.transpose()*self.__J*K)
 
 
     def __div__(self, U):
@@ -1397,7 +1399,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                     if c < r:
                         v= 'n_'+str(r)+str(c)
                         genString+= v+','
-                        forStringN+= 'for '+v+' in '+'xrange(d_'+str(r)+') '
+                        forStringN+= 'for '+v+' in '+'range(d_'+str(r)+') '
                     elif c==r:
                         v = 'd_'+str(r)
                         genString+= v+','
@@ -1624,8 +1626,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         NOTE
             Copied from sage.groups.group.FiniteGroup.cayley_graph().
+            This was previously using implementation='networkx' but I don't know why thi is needed.
         """
-        #from sage.graphs.graph import DiGraph
         arrows = {}
         for x in self:
             arrows[x] = {}
@@ -1633,7 +1635,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 xg = x+g
                 if not xg == x:
                     arrows[x][xg] = g
-        return DiGraph(arrows, implementation='networkx')
+        return DiGraph(arrows) # implementation='networkx')
 
 
     def _is_valid_homomorphism_(self, codomain, im_gens):
@@ -2844,12 +2846,14 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             sage: U.cap(V)              
             < 0 >
         """
+        if not isinstance(V,FiniteQuadraticModule_subgroup):
+            raise ValueError("Need object of type FiniteQuadraticModule_subgroup")
         ambience = self.ambience()
         if not ambience is V.ambience():
             raise ValueError
         lat0 = diagonal_matrix(ZZ, list(ambience.elementary_divisors())).column_module()
         lat1 =self._matrix_().column_module() + lat0
-        lat2 = matrix(V).column_module() + lat0
+        lat2 = V._matrix_().column_module() + lat0
         lat = lat1.intersection(lat2)
         return ambience.subgroup([ambience(list(x), can_coords = False) for x in lat.matrix()])
 
@@ -3138,7 +3142,7 @@ class JordanDecomposition(SageObject):
         og_b = U.orthogonal_basis()
         jd = dict()
         ol = []
-        primary_comps = uniq([x.order() for x in og_b])
+        primary_comps = sorted(set([x.order() for x in og_b]))
         for q in primary_comps:
             basis = tuple([x for x in og_b if x.order() == q])
             p = q.factor()[0][0]
