@@ -66,9 +66,10 @@ TESTS:
     sage: loads(dumps(v)) == v
     True
 """
-
+cimport cython
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
+from sage.rings.complex_mpc cimport MPComplexNumber, MPComplexField_class
 from psage.rings.mp_cimports cimport *
 from sage.ext.stdsage cimport PY_NEW
 
@@ -77,6 +78,7 @@ from sage.structure.element cimport Element,ModuleElement,RingElement
 from sage.modules.free_module_element cimport FreeModuleElement
 
 cdef class Vector_complex_dense(FreeModuleElement):
+
     cdef bint is_dense_c(self):
         return 1
     cdef bint is_sparse_c(self):
@@ -84,8 +86,6 @@ cdef class Vector_complex_dense(FreeModuleElement):
 
     cdef _new_c(self,v=None):
         cdef Vector_complex_dense y
-        #print "in new_c! v=",v
-        #y = PY_NEW(Vector_complex_dense)
         y = Vector_complex_dense.__new__(Vector_complex_dense,self._parent,v,False,False)
         return y
 
@@ -104,55 +104,41 @@ cdef class Vector_complex_dense(FreeModuleElement):
         self._base_ring=parent._base
         self._prec = self._base_ring.__prec
         self._entries = <mpc_t *> sig_malloc(sizeof(mpc_t) * degree)
-        #print "_inite entries=",<int>self._entries
-        #print "_inite pprec=",self._prec
+        for i in range(degree):
+            mpc_init2(self._entries[i],self._prec)
         if self._entries == NULL:
             raise MemoryError
         
-    def __cinit__(self, parent=None, x=None, coerce=True,copy=True):
-        #print "in __cinit__"
+    def __cinit__(self, parent, x, coerce=True,copy=True):
+        cdef MPComplexNumber z
         self._entries = NULL
         self._is_mutable = 1
-        if not parent is None:
-            self._init(parent.degree(), parent)
-
-
-        
-    def __init__(self, parent, x, coerce=True, copy=True):
-        cdef Py_ssize_t i
-        cdef MPComplexNumber z
-        # we have to do this to avoid a garbage collection error in dealloc
-        #print "in init parent=",parent
-        #print "in init x.parent=",x.parent
-
-        #print "in init x=",x
-        #
-        for i from 0 <= i < self._degree:
-            mpc_init2(self._entries[i],self._prec)
+        # Allocate entries
+        self._init(parent.degree(), parent)
+        # Set entries
         if isinstance(x, (list, tuple)) or (hasattr(x,'parent') and x.parent() == parent) :
             if len(x) != self._degree:
                 raise TypeError("entries must be a list of length %s"%self._degree)
-            for i from 0 <= i < self._degree:
+            for i in range(self._degree):
                 z = MPComplexNumber(self._base_ring,x[i])
                 mpc_set(self._entries[i], z.value,rnd)
-            return
-        elif x != 0:
-            print("type(x)=",type(x))
-            print("z=",MPComplexNumber(self._base_ring,x[0]))
-            raise TypeError("can't initialize vector from nonzero non-list")
+        elif x == 0 or x is None:
+            for i in range(self._degree):
+                mpc_set_ui(self._entries[i], 0, rnd)
         else:
-            for i from 0 <= i < self._degree:
-                mpc_set_ui(self._entries[i], 0,rnd)
-                
+            raise TypeError("can't initialize vector from nonzero non-list")
+
+    def __init__(self, parent, entries, coerce = True, copy = True):
+        pass
+
+
     def __dealloc__(self):
         cdef Py_ssize_t i
         if self._entries:
             sig_on()
             for i from 0 <= i < self._degree:
-                #print "clearing gmp's entry %s"%i
                 mpc_clear(self._entries[i])
             sig_off()
-            #print "clearing python entries"
             sig_free(self._entries)
 
     cpdef base_ring(self):
@@ -160,19 +146,23 @@ cdef class Vector_complex_dense(FreeModuleElement):
 
     cdef int _cmp_c_impl(left, Element right) except -2:
         """
-        EXAMPLES:
-            sage: v = vector(QQ, [0,0,0,0])
-            sage: v == 0
-            True
-            sage: v == 1
-            False
-            sage: v == v
-            True
-            sage: w = vector(QQ, [-1,3/2,0,0])
-            sage: w < v
-            True
-            sage: w > v
-            False
+        EXAMPLES::
+        
+        sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+        sage: F=MPComplexField(53)
+        sage: S=FreeModule(F,3)
+        sage: v=Vector_complex_dense(S,0)
+        sage: v == 0
+        True
+        sage: v == 1
+        False
+        sage: v == v
+        True
+        sage: w = Vector_complex_dense(S,[-1,3/2,0])
+        sage: w < v
+        True
+        sage: w > v
+        False
         """
         cdef Py_ssize_t i
         cdef int c
@@ -189,7 +179,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
 
     def __setitem__(self, Py_ssize_t i, x):
         if not self._is_mutable:
-            raise ValueError, "vector is immutable; please change a copy instead (use copy())"
+            raise ValueError("vector is immutable; please change a copy instead (use copy())")
         cdef MPComplexNumber z
         if i < 0 or i >= self._degree:
             raise IndexError
@@ -202,30 +192,32 @@ cdef class Vector_complex_dense(FreeModuleElement):
         Return the ith entry of self.
 
         EXAMPLES:
-            sage: v = vector([1/2,2/3,3/4]); v
-            (1/2, 2/3, 3/4)
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1/2,2/3,3/4]); v
+            (0.500000000000000, 0.666666666666667, 0.750000000000000)
             sage: v[0]
-            1/2
+            0.500000000000000
             sage: v[2]
-            3/4
+            0.750000000000000
             sage: v[-2]
-            2/3
+            0.666666666666667
             sage: v[5]
             Traceback (most recent call last):
             ...
-            IndexError: index out of range
+            IndexError:  index out of range
             sage: v[-5]
             Traceback (most recent call last):
             ...
-            IndexError: index out of range
+            IndexError:  index out of range
         """
         cdef MPComplexNumber z
-        #z = PY_NEW(MPComplexNumber)
         z = MPComplexNumber(self._base_ring,0)
         if i < 0:
             i += self._degree
         if i < 0 or i >= self._degree:
-            raise IndexError, 'index out of range'
+            raise IndexError('index out of range')
         else:
             mpc_set(z.value, self._entries[i],rnd)
             return z
@@ -241,36 +233,22 @@ cdef class Vector_complex_dense(FreeModuleElement):
         if isinstance(right,type(self)):
             r = right
         else:
-            r = self._new_c()
-            for i from 0 <= i < self._degree:
-                mpc_init2(r._entries[i],self._prec)
-                ztmp=self._base_ring(right[i])
-                mpc_set(r._entries[i],ztmp.value,rnd)
-        #r = right
-        #print "in add!"
+            r = Vector_complex_dense.__new__(Vector_complex_dense, self._parent, [self._base_ring(x) for x in right])
         z = self._new_c()
-        #prec=self.parent().base_ring().prec()
         for i from 0 <= i < self._degree:
             mpc_init2(z._entries[i],self._prec)
             mpc_add(z._entries[i], self._entries[i], r._entries[i],rnd)
         return z
-        
 
     cpdef _sub_(self, right):
         cdef Vector_complex_dense z
         cdef Vector_complex_dense r 
         cdef MPComplexNumber ztmp
         cdef Py_ssize_t i
-        #r = <Vector_complex_dense>right
-        #print "in sub!"
         if isinstance(right,type(self)):
             r = right
         else:
-            r = self._new_c()
-            for i from 0 <= i < self._degree:
-                mpc_init2(r._entries[i],self._prec)
-                ztmp=self._base_ring(right[i])
-                mpc_set(r._entries[i],ztmp.value,rnd)
+            r = Vector_complex_dense.__new__(Vector_complex_dense, self._parent, [self._base_ring(x) for x in right])
         z = self._new_c()
         for i from 0 <= i < self._degree:
             mpc_init2(z._entries[i],self._prec)
@@ -279,19 +257,31 @@ cdef class Vector_complex_dense(FreeModuleElement):
         
     cpdef Element _dot_product_(self, Vector right):
         """
-        Dot product of dense vectors over mpc.
+        Dot (i.e. entry-wise) product of dense vectors over mpc.
+        Note: this is different from the scalar product since it does not involve conjugation the second component.
         
-        EXAMPLES:
-            sage: v = vector(QQ, [1,2,-3]); w = vector(QQ,[4,3,2])
-            sage: v*w
-            4
-            sage: w*v
-            4
+        EXAMPLES::        
+        
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1,2,3])
+            sage: w=Vector_complex_dense(S,[4,5,6])
+            sage: v.dot_product(w)
+            32.0000000000000
+            sage: w=Vector_complex_dense(S,[4,5,F(1+I)])
+            sage: v.dot_product(w)
+            17.0000000000000 + 3.00000000000000*I
         """
-        cdef Vector_complex_dense r = right
+        cdef Vector_complex_dense r
         cdef MPComplexNumber z
         z = MPComplexNumber(self._base_ring,0)
         cdef mpc_t t
+        if isinstance(right,type(self)):
+            r = right
+        else:
+            r = Vector_complex_dense.__new__(Vector_complex_dense, self._parent, [self._base_ring(x) for x in right])
+
         mpc_init2(t,self._prec)
         mpc_set_si(z.value, 0,rnd)
         cdef Py_ssize_t i
@@ -302,6 +292,21 @@ cdef class Vector_complex_dense(FreeModuleElement):
         return z
     
     def scalar_product(self,right):
+        r"""
+
+        EXAMPLES::
+
+        sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+        sage: F=MPComplexField(53)
+        sage: S=FreeModule(F,3)
+        sage: v=Vector_complex_dense(S,[1,2,3])
+        sage: w=Vector_complex_dense(S,[4,5,6])
+        sage: v.scalar_product(w)
+        32.0000000000000
+        sage: w=Vector_complex_dense(S,[4,5,F(1+I)])
+        sage: v.scalar_product(w)
+        17.0000000000000 - 3.00000000000000*I
+        """
         return self._scalar_product_(right)
 
     cdef MPComplexNumber _scalar_product_(self, Vector right):
@@ -309,7 +314,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
         Hermitian scalar product of dense vectors over mpc.
 
         Note: conjugation on the second component.
-        EXAMPLES:
+        
 
         """
         cdef Vector_complex_dense r = right
@@ -331,12 +336,17 @@ cdef class Vector_complex_dense(FreeModuleElement):
 
     cpdef Vector _pairwise_product_(self, Vector right):
         """
-        EXAMPLES:
-            sage: v = vector(QQ, [1,2,-3]); w = vector(QQ,[4,3,2])
-            sage: v.pairwise_product(w)
-            (4, 6, -6)
+        
+        EXAMPLES::
+        
+        sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+        sage: F=MPComplexField(53)
+        sage: S=FreeModule(F,3)
+        sage: v=Vector_complex_dense(S,[1,2,3])
+        sage: w=Vector_complex_dense(S,[4,5,6])
+        sage: v.pairwise_product(w)
+        (4.00000000000000, 10.0000000000000, 18.0000000000000)
         """
-        print("in pwp")
         cdef Vector_complex_dense z, r
         r = right
         z = self._new_c()
@@ -348,13 +358,28 @@ cdef class Vector_complex_dense(FreeModuleElement):
 
         
     def __mul__(self, ModuleElement right):
-         #cdef Vector_complex_dense z
-         cdef MPComplexNumber a
-         if isinstance(right,Vector_complex_dense):
-             return self._dot_product_(right)
-         if isinstance(right,Matrix_complex_dense):
+        """
+
+        EXAMPLES::
+
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1,2,3])
+            sage: 2*v
+            (2.00000000000000, 4.00000000000000, 6.00000000000000)
+            sage: v*2
+            (2.00000000000000, 4.00000000000000, 6.00000000000000)
+            sage: v*F(1+I)
+            (1.00000000000000 + 1.00000000000000*I, 2.00000000000000 + 2.00000000000000*I, 3.00000000000000 + 3.00000000000000*I)
+
+        """
+        cdef MPComplexNumber a
+        if isinstance(right,Vector_complex_dense):
+            return self._dot_product_(right)
+        if isinstance(right,Matrix_complex_dense):
             return Matrix_complex_dense._vector_times_matrix_(right,self)
-         return self._lmul_(right)
+        return self._lmul_(right)
         
     cpdef _rmul_(self, Element left):
         cdef Vector_complex_dense z
@@ -390,6 +415,18 @@ cdef class Vector_complex_dense(FreeModuleElement):
         return z
 
     cpdef ModuleElement _neg_(self):
+        r"""
+        
+        EXAMPLES::
+        
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1,2,3])
+            sage: -v
+            (-1.00000000000000, -2.00000000000000, -3.00000000000000)           
+        
+        """
         cdef Vector_complex_dense z
         z = self._new_c()
         cdef Py_ssize_t i
@@ -402,6 +439,19 @@ cdef class Vector_complex_dense(FreeModuleElement):
     cpdef RealNumber norm(self,int ntype=2):
         r"""
         The norm of self.
+        
+        EXAMPLES::
+        
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1,2,3])
+            sage: v.norm()
+            3.74165738677394
+            sage: v=Vector_complex_dense(S,[1+I,2+I,3+I])
+            sage: v.norm()
+            4.12310562561766
+            
         """
         cdef RealNumber res
         cdef mpfr_t x,s
@@ -423,11 +473,44 @@ cdef class Vector_complex_dense(FreeModuleElement):
             raise NotImplementedError,"Only 2-norm is currently implemented"
 
     def prec(self):
+        r"""
+
+        EXAMPLES::
+
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1+I,2+I,3+I]); v
+            (1.00000000000000 + 1.00000000000000*I, 2.00000000000000 + 1.00000000000000*I, 3.00000000000000 + 1.00000000000000*I)
+            sage: v.prec()
+            53
+            sage: F=MPComplexField(103)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1+I,2+I,3+I]); v
+            (1.00000000000000000000000000000 + 1.00000000000000000000000000000*I, 2.00000000000000000000000000000 + 1.00000000000000000000000000000*I, 3.00000000000000000000000000000 + 1.00000000000000000000000000000*I)
+            sage: v.prec()
+            103
+
+        """
         return self._prec
 
     def set_prec(self,int prec):
         r"""
-        Change the defualt precision for self.
+        Change the default precision for self.
+
+        EXAMPLES::
+
+            sage: from psage.modules.vector_complex_dense import Vector_complex_dense
+            sage: F=MPComplexField(53)
+            sage: S=FreeModule(F,3)
+            sage: v=Vector_complex_dense(S,[1+I,2+I,3+I]); v
+            (1.00000000000000 + 1.00000000000000*I, 2.00000000000000 + 1.00000000000000*I, 3.00000000000000 + 1.00000000000000*I)
+            sage: v.prec()
+            53
+            sage: v.set_prec(103); v
+            (1.00000000000000000000000000000 + 1.00000000000000000000000000000*I, 2.00000000000000000000000000000 + 1.00000000000000000000000000000*I, 3.00000000000000000000000000000 + 1.00000000000000000000000000000*I)
+            sage: v.prec()
+            103
         """        
         cdef Py_ssize_t i,j
         cdef mpc_t z
@@ -442,59 +525,41 @@ cdef class Vector_complex_dense(FreeModuleElement):
                 mpc_set(z,self._entries[i],rnd)
                 mpc_set_prec(self._entries[i],prec)
                 mpc_set(self._entries[i],z,rnd)
-        #RF= self._base_ring._base
-        #self._eps = RF(2)**RF(5-self._prec)
-        #mpfr_init2(self._mpeps,self._prec)
-        #mpfr_set(self._mpeps,self._eps.value,self._rnd_re)
         mpc_clear(z)
 
-        
-    def n(self, *args, **kwargs):
-        """
-        Returns a numerical approximation of self by calling the n()
-        method on all of its entries.
 
-        EXAMPLES:
-            sage: v = vector(QQ, [1,2,3])
-            sage: v.n()
-            (1.00000000000000, 2.00000000000000, 3.00000000000000)
-            sage: _.parent()
-            Vector space of dimension 3 over Real Field with 53 bits of precision
-            sage: v.n(prec=75)
-            (1.000000000000000000000, 2.000000000000000000000, 3.000000000000000000000)
-            sage: _.parent()
-            Vector space of dimension 3 over Real Field with 75 bits of precision
-        """
-        return Vector( [e.n(*args, **kwargs) for e in self] )
-
-
+@cython.binding(True)
 def make_FreeModuleElement_complex_dense_v1(parent, entries, degree):
-    # If you think you want to change this function, don't.
-    # Instead make a new version with a name like
-    #    make_FreeModuleElement_generic_dense_v1
-    # and changed the reduce method below.
+    r"""
+    If you think you want to change this function, don't.
+    Instead make a new version with a name like
+       make_FreeModuleElement_generic_dense_v1
+    and changed the reduce method below.
+
+    EXAMPLES::
+
+    sage: F = MPComplexField(53)
+    sage: S = FreeModule(F,3)
+    sage: from psage.modules.vector_complex_dense import make_FreeModuleElement_complex_dense_v1
+    sage: entries = [F(1),F(2),F(3)]
+    sage: v = make_FreeModuleElement_complex_dense_v1(S,entries,3); v
+    (1.00000000000000, 2.00000000000000, 3.00000000000000)
+    """
     cdef Vector_complex_dense v
-    v = PY_NEW(Vector_complex_dense)
-    v._init(degree, parent)
-    prec=parent.prec()
-    cdef MPComplexNumber z
-    base_ring=parent.base_ring()
-    for i from 0 <= i < degree:
-        z = MPComplexNumber(base_ring,entries[i])
-        mpc_init2(v._entries[i],prec)
-        mpc_set(v._entries[i], z.value,rnd)
+    v = Vector_complex_dense.__new__(Vector_complex_dense,parent,entries)
     return v
 
 def unpickle_v1(parent, entries, degree, is_mutable):
     cdef Vector_complex_dense v
-    v = PY_NEW(Vector_complex_dense)
-    v._init(degree, parent)
-    prec=parent.prec()
-    cdef MPComplexNumber z
-    base_ring=parent.base_ring()
-    for i from 0 <= i < degree:
-        z = MPComplexNumber(base_ring,entries[i])
-        mpc_init2(v._entries[i],prec)
-        mpc_set(v._entries[i], z.value,rnd)
-    v._is_mutable = is_mutable
+    v = Vector_complex_dense.__new__(Vector_complex_dense,parent,entries)
     return v
+    # v._init(degree, parent)
+    # prec=parent.prec()
+    # cdef MPComplexNumber z
+    # base_ring=parent.base_ring()
+    # for i from 0 <= i < degree:
+    #     z = MPComplexNumber(base_ring,entries[i])
+    #     mpc_init2(v._entries[i],prec)
+    #     mpc_set(v._entries[i], z.value,rnd)
+    # v._is_mutable = is_mutable
+    # return v

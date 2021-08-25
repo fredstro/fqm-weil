@@ -1,12 +1,14 @@
 from psage.rings.mp_cimports cimport *
-
+from sage.rings.complex_mpc cimport MPComplexNumber, MPComplexField_class
 from sage.modules.free_module_element cimport FreeModuleElement
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
+from sage.rings.real_mpfr cimport RealNumber
 from psage.rings.mpfr_nogil cimport *
 from sage.structure.element cimport Vector,Element
 
 cdef class Vector_complex_dense(FreeModuleElement):
         cdef mpc_t* _entries
+        cdef int _is_mutable
         cdef int _prec
         cdef MPComplexField_class _base_ring
         cpdef _add_(self, other)

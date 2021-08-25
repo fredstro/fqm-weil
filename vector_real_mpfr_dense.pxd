@@ -6,6 +6,7 @@ from sage.structure.element cimport Vector,Element
 
 cdef class Vector_real_mpfr_dense(FreeModuleElement):
         cdef mpfr_t* _entries
+        cdef int _is_mutable
         cdef int _prec
         cdef RealField_class _base_ring
         cpdef _add_(self, other)
