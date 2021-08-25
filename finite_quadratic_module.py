@@ -135,11 +135,13 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         FiniteQuadraticModule_ambient objects.
 
     EXAMPLES ::
+
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule_ambient
         sage: R = matrix(2,2,[2,1,1,2])
         sage: G = 1/2 * R^(-1)
         sage: A.<a,b> = FiniteQuadraticModule_ambient(R, G); A
         Finite quadratic module in 2 generators:
-         gens: a, b
+         gens: b, b
          form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2
         sage: a == b
         True
@@ -147,8 +149,14 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         False
         sage: a + b in A
         True
-    """
 
+        # Check that elements and modules can be hashed
+
+        sage: hash(a) is not None
+        True
+        sage: hash(A) is not None
+        True
+    """
     def __init__(self, R, G, check = True, names = None):
         r"""
         Initialize a quadratic module from R and G.
@@ -273,7 +281,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
     def _latex_(self):
         r"""
-        EXAMPLES
+
+        EXAMPLES:
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('3^2.27^-3'); latex(A)
             \left(\left\langle \Z^{5}/\left(\begin{array}{rrrrr}
             3 & 0 & 0 & 0 & 0 \\
@@ -281,7 +292,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             0 & 0 & 27 & 0 & 0 \\
             0 & 0 & 0 & 27 & 0 \\
             0 & 0 & 0 & 0 & 27
-            \end{array}\right)\Z^{5} \right\rangle, \frac{1}{3} x_{0}^{2} + \frac{1}{3} x_{1}^{2} + \frac{2}{27} x_{2}^{2} + \frac{1}{27} x_{3}^{2} + \frac{1}{27} x_{4}^{2}\right)
+            \end{array}\right)\Z^{5} \right\rangle, \frac{1}{3} x_{0}^{2} + \frac{1}{3} x_{1}^{2} + \frac{1}{27} x_{2}^{2} + \frac{1}{27} x_{3}^{2} + \frac{1}{27} x_{4}^{2}\right)
         """
         n = self.ngens()
         v = vector(PolynomialRing(QQ, 'x', n).gens())
@@ -292,7 +303,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
     def _repr_(self):
         r"""
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('2^2'); A
             Finite quadratic module in 2 generators:
              gens: e0, e1
@@ -315,14 +328,16 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the number of generators of the underlying abelian group.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: F = matrix(QQ, 3, 3, [2, 1, 5, 1, 34, 19, 5, 19, 6]); F
-            [2  1  5]
-            [1 34 19]
-            [5 19  6]
+            [ 2  1  5]
+            [ 1 34 19]
+            [ 5 19  6]
             sage: A = FiniteQuadraticModule(F); A
             Finite quadratic module in 3 generators:
-             gens: e0, e1, e2
+             gens: 27*e2, 921*e2, e2
              form: 157/1960*x0^2 + 891/980*x0*x1 + 13/1960*x1^2 + 151/980*x0*x2 + 33/980*x1*x2 + 1893/1960*x2^2
             sage: A.ngens()
             3
@@ -334,7 +349,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the $i$-th generator of the underlying abelian group.
         
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule([2, 4, 8]); A
             Finite quadratic module in 3 generators:
              gens: e0, e1, e2
@@ -359,7 +376,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Return a matrix in Hermite normal form describing the relations
         satisfied by the generators (see class dos string for details).
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('2^-2'); A
             Finite quadratic module in 2 generators:
              gens: e0, e1
@@ -386,13 +405,15 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the orders of the generators of the underlying group.
 
-        EXAMPLES
+        EXAMPLES:
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule([11,33]); A  
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/44*x0^2 + 1/132*x1^2
             sage: A.elementary_divisors ()
-            (66, 22)
+            (22, 66)
         """
         return self.__elementary_divisors
 
@@ -455,7 +476,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         If self is the quadratic module $(M,Q)$, return the order of $M$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule([11,33]);
             sage: A.order()
             1452
@@ -468,7 +491,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         If self is the quadratic module $(M,Q)$, then return the exponent of the
         abelian group $M$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule([11,33]);
             sage: A.exponent()
             66
@@ -481,7 +506,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         If self is the quadratic module $(M,Q)$, then return the smallest positive integer $l$
         such that $l\cdotQ = 0$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule([11,33]);
             sage: A.level()
             132
@@ -701,11 +728,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         This method is used for an expression like 3*A, where A is \emph{on the right}.
         It calls self.__mul__.
 
-        EXAMPLES:
-            ::
-            sage: A=FiniteQuadraticModule();
-            sage: 3*A == A*3
-            True
+        EXAMPLES::
+
+                        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+                        sage: A=FiniteQuadraticModule();
+                        sage: 3*A == A*3
+                        True
         """
         
         # HINT:
@@ -746,15 +774,17 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         OUTPUT
             quadratic module
         
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('11^-1'); A
             Finite quadratic module in 1 generators:
              gens: e
-             form: 10/11*x^2
+             form: 1/11*x^2
             sage: B = A^-1; B                           
             Finite quadratic module in 1 generators:
              gens: e
-             form: 1/11*x^2
+             form: 10/11*x^2
             sage: C = B^11; C                           
             Finite quadratic module in 1 generators:
              gens: e
@@ -786,21 +816,21 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             See FiniteQuadraticModule_subgroup.orthogonal_basis()
             for detailed explanation.
             
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d,e,f,g,h,j> = FiniteQuadraticModule('11^-7.2^-2')
             sage: A.orthogonal_basis (11)
-            [2*a, 2*b, c, d, e, f, g]
+            [g, f, e, d, c, 2*b, 2*a]
             sage: A.orthogonal_basis (2) 
-            [j, h]
-
+            [h, j]
             sage: R.<X>= ZZ['X']
             sage: K.<x> = NumberField(X^10 + X^9 - X^7  - X^6 - X^5 - X^4  - X^3 + X + 1)
             sage: L = FiniteQuadraticModule((1-x)/1001); L
-
             Finite quadratic module in 10 generators:
              gens: e0, e1, e2, e3, e4, e5, e6, e7, e8, e9
              form: 1/91*x0^2 + 997/1001*x0*x1 + 1000/1001*x1^2 + 999/1001*x0*x2 + 2/1001*x1*x2 + 998/1001*x2^2 + 2/1001*x0*x3 + 995/1001*x1*x3 + 999/1001*x3^2 + 995/1001*x0*x4 + 997/1001*x2*x4 + 10/1001*x3*x4 + 1000/1001*x4^2 + 997/1001*x1*x5 + 10/1001*x2*x5 + 999/1001*x3*x5 + 993/1001*x4*x5 + 997/1001*x5^2 + 997/1001*x0*x6 + 10/1001*x1*x6 + 999/1001*x2*x6 + 993/1001*x3*x6 + 993/1001*x4*x6 + 12/1001*x5*x6 + 993/1001*x6^2 + 10/1001*x0*x7 + 999/1001*x1*x7 + 993/1001*x2*x7 + 993/1001*x3*x7 + 12/1001*x4*x7 + 985/1001*x5*x7 + 8/1001*x6*x7 + 1/1001*x7^2 + 999/1001*x0*x8 + 993/1001*x1*x8 + 993/1001*x2*x8 + 12/1001*x3*x8 + 985/1001*x4*x8 + 8/1001*x5*x8 + 2/1001*x6*x8 + 981/1001*x7*x8 + 1/1001*x8^2 + 993/1001*x0*x9 + 993/1001*x1*x9 + 12/1001*x2*x9 + 985/1001*x3*x9 + 8/1001*x4*x9 + 2/1001*x5*x9 + 981/1001*x6*x9 + 2/1001*x7*x9 + 989/1001*x8*x9 + 4/1001*x9^2
-            sage: og_b = L.orthogonal_basis(); og_b long time
+            sage: og_b = L.orthogonal_basis(); og_b #long time
             [77*e0,
              77*e0 + 462*e9,
              77*e0 + 77*e8 + 693*e9,
@@ -946,14 +976,16 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         INPUT
            arg -- a list of elements of this quadratic module or a prime number
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d,e,f,g> = FiniteQuadraticModule('11^-3.2_2^4')
             sage: A2 = A.subgroup (2); A2                                     
-            < g, f, e, d >
+            < d, e, f, g >
             sage: A3 = A.subgroup (3); A3
             < 0 >
             sage: A11 = A.subgroup (11); A11                                  
-            < 2*a, 2*b, 2*c >
+            < 2*c, 2*b, 2*a >
             sage: A11.order()
             1331
             sage: A2.order() 
@@ -977,7 +1009,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         i.e. return $\{y \in A : B(y,x) = 0 \text{ for all } x \in A  \}$,
         for this module $(A,Q)$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b> = FiniteQuadraticModule([3,3], [1/3,1/3,1/3]); A
             Finite quadratic module in 2 generators:
              gens: a, b
@@ -986,7 +1020,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             < a + b >
             sage: B = A.quotient(U); B
             Finite quadratic module in 2 generators:
-             gens: e0, e1
+             gens: 2*e1, e1
              form: 1/3*x0^2 + 1/3*x0*x1 + 1/3*x1^2
             sage: e0,e1 = B.gens()
             sage: e0
@@ -1137,7 +1171,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return False since finite quadratic modules are modules.
         
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: var('x')
             x
             sage: K.<a> = NumberField(x^3-x+1)
@@ -1146,7 +1182,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             sage: jd.genus_symbol()
             '1319'
             sage: A.char_invariant(1)
-            (-zeta8^2, 1/sqrt(1319))
+             (zeta8^2, sqrt(1/1319))
             sage: A.is_multiplicative()
             False
         """
@@ -1158,9 +1194,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Return True or False accordingly if this module is
         non degenerate or not.
         NOTE: Is a trivial module non-degenerate (according to def)?
-        EXAMPLES
-            sage: N = FiniteQuadraticModule(); N
 
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+            sage: N = FiniteQuadraticModule(); N
             Finite quadratic module in 1 generators:
              gens: 0
              form: 0
@@ -1185,7 +1223,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Return True or False accordingly as this quadratic module
         is isomorphic to $A$ or not.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('2_2^4')
             sage: B = FiniteQuadraticModule('2_6^-4')
             sage: A.is_isomorphic(B)
@@ -1320,26 +1360,28 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         OUTPUT
             generator for a list of FiniteQuadraticModule_subgroup of order d
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule([1,3]); A      
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/4*x0^2 + 1/12*x1^2
             sage: list(A.subgroups())             
-            [< e1, e0 >,
-             < e1 >,
-             < e0 + e1 >,
-             < 2*e1, e0 >,
-             < 2*e1 >,
-             < 3*e1, e0 >,
-             < 3*e1 >,
-             < e0 + 3*e1 >,
+             [< e0, e1 >,
+             < e0, 2*e1 >,
+             < e0 + e1, 2*e1 >,
+             < e0, 3*e1 >,
              < e0 >,
+             < e0 + 3*e1 >,
+             < e1 >,
+             < 2*e1 >,
+             < 3*e1 >,
              < 0 >]
-             sage: B.<a> = FiniteQuadraticModule('25^-1'); B        
+             sage: B.<a> = FiniteQuadraticModule('25^-1'); B
              Finite quadratic module in 1 generators:
               gens: a
-              form: 2/25*x^2
+              form: 1/25*x^2
              sage: I = [U for U in B.subgroups() if U.is_isotropic()]; I
              [< 5*a >, < 0 >]
 
@@ -1437,7 +1479,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the fractional part of $x$.
 
-        EXAMPLES
+        EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule_ambient
         sage: FiniteQuadraticModule_ambient._reduce(297/100)
         97/100
         """
@@ -1449,7 +1493,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the fractional part of the symmetric matrix $A$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule_ambient
             sage: F = matrix(3,3,[1,1/2,3/2,1/2,2,1/9,3/2,1/9,1]); F
             [ 1 1/2 3/2]
             [1/2   2 1/9]
@@ -1609,7 +1655,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Returns the cayley graph for this finite group, as a SAGE
         DiGraph object. To plot the graph with different colors
 
-        EXAMPLES
+        EXAMPLES:
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b> = FiniteQuadraticModule(matrix(QQ, 2, [2,1,1,6])); A
             Finite quadratic module in 2 generators:
              gens: 5*b, b
@@ -1664,16 +1712,18 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the set of morphism from this quadratic module to $B$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule(matrix(QQ, 2, [2,1,1,2]))
             sage: B = 2*A
-            sage: S = A._Hom_(B)
-            Set of Homomorphisms from Finite quadratic module in 2 generators:
-            gens: e1, e1
-            form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 to Finite quadratic module in 4 generators:
-            gens: e1, e1, e3, e3
-            form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 + 1/3*x2^2 + 2/3*x2*x3 + 1/3*x3^2
-        """
+            sage: S = A._Hom_(B); S
+            Set of Morphisms from Finite quadratic module in 2 generators:
+                 gens: e1, e1
+                 form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 to Finite quadratic module in 4 generators:
+                 gens: e1, e1, e3, e3
+                 form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 + 1/3*x2^2 + 2/3*x2*x3 + 1/3*x3^2 in Category of commutative additive groups
+    """
         if not (cat is None or (cat is B.category() and cat is self.category())):
             raise NotImplementedError
         # if not isinstance(B, FiniteQuadraticModule_ambient):
@@ -1744,7 +1794,9 @@ class FiniteQuadraticModuleHomomorphism_im_gens (Morphism):
     r"""
     Implements elements of the set of morphisms between two quadratic modules.
     
-    EXAMPLES
+    EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
         sage: A = FiniteQuadraticModule(matrix(QQ, 2, [2,1,1,2])); B = 2*A; S=A._Hom_(B); u,v = A.gens(); a,b,c,d = B.gens();
         sage: f = S([a,b]); f                             
         Homomorphism : Finite quadratic module in 2 generators:
@@ -1752,7 +1804,7 @@ class FiniteQuadraticModuleHomomorphism_im_gens (Morphism):
          form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 --> Finite quadratic module in 4 generators:
          gens: e1, e1, e3, e3
          form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 + 1/3*x2^2 + 2/3*x2*x3 + 1/3*x3^2
-        sage: f(u),f(v),f(2*v),f(0)                                                                               
+        sage: f(u),f(v),f(2*v),f(A(0))
         (e1, e1, 2*e1, 0)
     """
     
@@ -1839,8 +1891,10 @@ def _A(q, s = 1, **args):
     r"""
     Return the quadratic module $A_q^s$ as defined in [Sko].
     
-    EXAMPLES
-        sage: A = _A(3); A      
+    EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import _A
+        sage: A = _A(3); A
         Finite quadratic module in 1 generators:
          gens: e
          form: 1/3*x^2
@@ -1869,7 +1923,9 @@ def _B(q, **args):
     r"""
     Return the quadratic module $C_q$ as defined in [Sko].
     
-    EXAMPLES
+    EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import _B
         sage: B.<a,b> = _B(2^3); B
         Finite quadratic module in 2 generators:
          gens: a, b
@@ -1887,7 +1943,9 @@ def _C(q, **args):
     r"""
     Return the quadratic module $C_q$ as defined in [Sko].
     
-    EXAMPLES
+    EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import _C
         sage: C.<a,b> = _C(2); C
         Finite quadratic module in 2 generators:
          gens: a, b
@@ -1927,7 +1985,7 @@ def _FiniteQuadraticModule_from_string(S, **args ):
         A symbol $a^{\pm k}$, for an odd prime power $a$, indicates the quadratic module
         $A_a^e+(k-1)A_a$, where $e$ is an integer such that the Legendre symbol $2^k e$ over $p$ equals $\pm 1$.
 
-        A symbold $a_t^{\pm k}$, for a $2$-power $a$, indicates the quadratic module
+        A symbol $a_t^{\pm k}$, for a $2$-power $a$, indicates the quadratic module
         $A_a^{c_1}+\cdots + A_a^{c_k}$, where the $c_i$ are odd integers such that
         $D := c_1 \cdots c_k$ is a quadratic residue or non-residue modulo $8$ according to
         the sign $\pm$, and where $c_1 + \cdots + c_k \equiv t \bmod 8$. Here, for even $a$, we
@@ -1942,10 +2000,11 @@ def _FiniteQuadraticModule_from_string(S, **args ):
 
     EXAMPLES::
 
+        sage: from psage.modules.finite_quadratic_module import _FiniteQuadraticModule_from_string
         sage: A.<a,b,c,d> =_FiniteQuadraticModule_from_string ('3^-1.3.5^2'); A
         Finite quadratic module in 4 generators:
          gens: a, b, c, d
-         form: 2/3*x0^2 + 1/3*x1^2 + 1/5*x2^2 + 1/5*x3^2
+         form: 1/3*x0^2 + 2/3*x1^2 + 1/5*x2^2 + 1/5*x3^2
         sage: A =_FiniteQuadraticModule_from_string ('8^+6'); A
         Finite quadratic module in 6 generators:
          gens: e0, e1, e2, e3, e4, e5
@@ -1963,13 +2022,13 @@ def _FiniteQuadraticModule_from_string(S, **args ):
          gens: a, b, c, d, e
          form: 1/16*x0^2 + 1/16*x1^2 + 15/16*x2^2 + 1/4*x3^2 + 1/4*x3*x4 + 1/4*x4^2
         sage: D.level(), D.exponent(), D.order(), D.elementary_divisors ()
-        (16, 8, 8192, (8, 8, 8, 4, 4))
+        (16, 8, 8192, (4, 4, 8, 8, 8))
         sage: E.<a,b,c,d,e,f,g> = _FiniteQuadraticModule_from_string ('8_1^3.4^-2.3^-1.11^-1'); E
         Finite quadratic module in 7 generators:
          gens: a, b, c, d, e, f, g
          form: 1/16*x0^2 + 1/16*x1^2 + 15/16*x2^2 + 1/4*x3^2 + 1/4*x3*x4 + 1/4*x4^2 + 1/3*x5^2 + 1/11*x6^2
-        sage: E.elementary_divisors ()
-        (264, 8, 8, 4, 4)
+        sage: E.elementary_divisors()
+         (4, 4, 8, 8, 264)
 
     TECHNICAL NOTES
         The accepted strings can be described in BNF as follows:
@@ -2118,7 +2177,9 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
                 quadratic module $(\ZZ^n/R\ZZ^n, x+R\ZZ^n \mapsto G[x] + \ZZ)$.
 
 
-    EXAMPLES
+    EXAMPLES::
+
+        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
         sage: N.<n> = FiniteQuadraticModule(); N                               
         Finite quadratic module in 1 generators:
          gens: 0
@@ -2129,7 +2190,7 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
         sage: S.<x,y,z> = FiniteQuadraticModule('7^-1.3.2_3^-1'); S
         Finite quadratic module in 3 generators:
          gens: x, y, z
-         form: 6/7*x0^2 + 1/3*x1^2 + 3/4*x2^2
+         form: 6/7*x0^2 + 2/3*x1^2 + 3/4*x2^2
 
         sage: L.<w> = FiniteQuadraticModule([13]); L          
         Finite quadratic module in 1 generators:
@@ -2137,15 +2198,15 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
          form: 1/52*x^2
 
         sage: E8 = matrix(ZZ, 8, [4,-2,0,0,0,0,0,1,-2,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,0,1,0,0,0,0,0,0,2]); E8
-        [4 -2  0  0  0  0  0  1]
+        [ 4 -2  0  0  0  0  0  1]
         [-2  2 -1  0  0  0  0  0]
-        [0 -1  2 -1  0  0  0  0]
-        [0  0 -1  2 -1  0  0  0]
-        [0  0  0 -1  2 -1  0  0]
-        [0  0  0  0 -1  2 -1  0]
-        [0  0  0  0  0 -1  2  0]
-        [1  0  0  0  0  0  0  2]
-        sage: M.<a,b,c,d,e,f,g,h> = FiniteQuadraticModule(3*F); M
+        [ 0 -1  2 -1  0  0  0  0]
+        [ 0  0 -1  2 -1  0  0  0]
+        [ 0  0  0 -1  2 -1  0  0]
+        [ 0  0  0  0 -1  2 -1  0]
+        [ 0  0  0  0  0 -1  2  0]
+        [ 1  0  0  0  0  0  0  2]
+        sage: M.<a,b,c,d,e,f,g,h> = FiniteQuadraticModule(3*E8); M
         Finite quadratic module in 8 generators:
          gens: a, b, c, d, e, f, g, h
          form: 1/3*x0^2 + 2/3*x0*x2 + 2/3*x1*x2 + 1/3*x0*x3 + 1/3*x1*x3 + 1/3*x3^2 + 2/3*x0*x5 + 2/3*x1*x5 + 1/3*x3*x5 + 2/3*x4*x5 + 1/3*x0*x6 + 1/3*x1*x6 + 2/3*x3*x6 + 1/3*x4*x6 + 1/3*x6^2 + 2/3*x0*x7 + 2/3*x2*x7 + 1/3*x3*x7 + 2/3*x5*x7 + 1/3*x6*x7 + 2/3*x7^2
@@ -2162,14 +2223,13 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
         Finite quadratic module in 3 generators:
          gens: e0, e1, e2
          form: 1/3*x0^2 + 1/8*x1^2 + 1/3*x0*x2 + 1/2*x1*x2 + 7/60*x2^2
-        sage: LL.elementary_divisors ()                                        
-        (60, 6)
-
-        sage:  LL2.<u,v> = FiniteQuadraticModule([5,5], [3/5,1/5,4/5]); LL2
+        sage: LL.elementary_divisors()
+        (6, 60)
+        sage: LL2.<u,v> = FiniteQuadraticModule([5,5], [3/5,1/5,4/5]); LL2
         Finite quadratic module in 2 generators:
          gens: u, v
          form: 3/5*x0^2 + 1/5*x0*x1 + 4/5*x1^2
-        sage: LL2.is_nondegenerate ()
+        sage: LL2.is_nondegenerate()
         True
 
         sage: G = matrix(3,3,[1,1/2,3/2,1/2,2,1/9,3/2,1/9,1]); G
@@ -2192,8 +2252,8 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
          form: 3/23*x0^2 + 22/23*x0*x1 + 2/23*x1^2
          
         sage: E = matrix(2, [8,3,3,10]); E                       
-        [8  3]
-        [3 10]
+        [ 8  3]
+        [ 3 10]
         sage: MM.<x,y> = FiniteQuadraticModule(E, 1/2 * E^-1); MM
         Finite quadratic module in 2 generators:
          gens: 44*y, y
@@ -2550,7 +2610,9 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
         r"""
         Returns the order of this element.
         
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: F.<a,b,c> = FiniteQuadraticModule([2,12,34]); F
             Finite quadratic module in 3 generators:
              gens: a, b, c
@@ -2748,7 +2810,9 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         and where $f: B \rightarrow A$ is the morphism of finite quadratic modules
         corresponding to the inclusion of self in $A$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule(matrix(QQ, 2, [2,1,1,2]))
             sage: B = 2*A                                              
             sage: a,b,c,d = B.gens()                                   
@@ -2829,7 +2893,9 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         r"""
         Return the intersection of this subgroup with the subgroup $V$.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d> = FiniteQuadraticModule('3^-4')
             sage: U = A.subgroup([a+b,c])                    
             sage: V = A.subgroup([a+b,d])
@@ -2842,7 +2908,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
              form: 1/4*x0^2 + 3/4*x1^2 + 3/4*x2^2 + 3/4*x3^2
             sage: U = A.subgroup([a,b])
             sage: V = U.dual(); V
-            < c, d >
+            < d, c >
             sage: U.cap(V)              
             < 0 >
         """
@@ -2880,19 +2946,21 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             $U$ and $V$ are orthogonal to each other.
             If $n$ is a prime then $U$ is the Sylow $p$-subgroup of self.
 
-        EXAMPLES
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d,e,f,g,h,j> = FiniteQuadraticModule('23^4.2_2^4.3'); A
             Finite quadratic module in 9 generators:
              gens: a, b, c, d, e, f, g, h, j
-             form: 1/23*x0^2 + 1/23*x1^2 + 1/23*x2^2 + 1/23*x3^2 + 1/4*x4^2 + 1/4*x5^2 + 1/4*x6^2 + 3/4*x7^2 + 1/3*x8^2
+             form: 1/23*x0^2 + 1/23*x1^2 + 1/23*x2^2 + 1/23*x3^2 + 1/4*x4^2 + 1/4*x5^2 + 1/4*x6^2 + 3/4*x7^2 + 2/3*x8^2
             sage: U = A.subgroup(A.gens()); U
-            < a + h + 2*j, b + g, c + f, d + e >
-            sage: U2 = U.split(2); U2   
-            (< h, g, f, e >, < 2*a + j, 2*b, 2*c, 2*d >)
+             < d + e, c + f, b + g, a + h + 2*j >
+            sage: U2 = U.split(2); U2
+            (< e, f, g, h >, < 2*d, 2*c, 2*b, 2*a + j >)
             sage: U3 = U.split(3); U3
-            (< 2*j >, < 3*a + h, b + g, c + f, d + e >)
+            (< 2*j >, < d + e, c + f, b + g, 3*a + h >)
             sage: U23 = U.split(23); U23
-            (< 6*a, 2*b, 2*c, 2*d >, < h + j, g, f, e >)
+            (< 2*d, 2*c, 2*b, 6*a >, < e, f, g, h + j >)
             sage: V = U2[0] + U3[0] + U23[0]
             sage: U == V
             True
@@ -2983,32 +3051,33 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             the subgroups $\langle b_j,c_j \rangle$ are pairwise orthogonal and do no possess
             orthogonal generators.
             
-        EXAMPLES:
-            ::
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d,e,f,g> = FiniteQuadraticModule('11^-7')
             sage: U = A.subgroup([a+b,b+c,c+d,d+e,e+f,f+g]); U
-            < a + 10*g, b + g, c + 10*g, d + g, e + 10*g, f + g >
+            < 10*a + g, a + f, 10*a + e, a + d, 10*a + c, a + b >
             sage: matrix(len(U.gens()), [x.dot(y) for x in U.gens() for y in U.gens()])
-            [  0 9/11 2/11 9/11 2/11 9/11]
+            [4/11 9/11 2/11 9/11 2/11 9/11]
             [9/11 4/11 9/11 2/11 9/11 2/11]
             [2/11 9/11 4/11 9/11 2/11 9/11]
             [9/11 2/11 9/11 4/11 9/11 2/11]
             [2/11 9/11 2/11 9/11 4/11 9/11]
             [9/11 2/11 9/11 2/11 9/11 4/11]
             sage: og_b = U.orthogonal_basis(); og_b
-            [b + g,
-             b + 9*f + 10*g,
-             b + 3*e + f + 10*g,
-             b + 7*d + 10*e + f + 10*g,
-             b + 5*c + d + 10*e + f + 10*g,
-             a + 2*b + 9*c + 2*d + 9*e + 2*f + 9*g]
-            sage: matrix(len(og_b), [x.dot(y) for x in og_b for y in og_b])
-            [4/11    0    0    0    0    0]
-            [  0 1/11    0    0    0    0]
-            [  0    0 2/11    0    0    0]
-            [  0    0    0 7/11    0    0]
-            [  0    0    0    0 5/11    0]
-            [  0    0    0    0    0 2/11]
+            [10*a + g,
+             a + 2*b + g,
+             a + 10*b + 8*c + g,
+             a + 10*b + c + 4*d + g,
+             a + 10*b + c + 10*d + 6*e + g,
+             a + 10*b + c + 10*d + e + 6*f + g]
+             sage: matrix(len(og_b), [x.dot(y) for x in og_b for y in og_b])
+             [4/11    0    0    0    0   0]
+             [  0 1/11    0    0    0    0]
+             [  0    0 2/11    0    0    0]
+             [  0    0    0 7/11    0    0]
+             [  0    0    0    0 5/11    0]
+             [  0    0    0    0    0 7/11]
         """
         if not self.as_ambient()[0].is_nondegenerate():
             raise TypeError
@@ -3197,11 +3266,12 @@ class JordanDecomposition(SageObject):
         Return the concatenation of all local genus symbols
         if no argument is given.
         
-        EXAMPLES:
+        EXAMPLES::
 
         We check that the calculation of the genus symbol is correct
         for 2-adic symbols.
-            ::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: M = FiniteQuadraticModule('2^-2.2_1^1'); M
             Finite quadratic module in 3 generators:
              gens: e0, e1, e2
@@ -3267,7 +3337,9 @@ class JordanDecomposition(SageObject):
         OUTPUT:
             dictionary -- the mapping p --> (dictionary -- the mapping orbit --> the number of elements in this orbit)
 
-        EXAMPLES:
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule, JordanDecomposition
             sage: A = FiniteQuadraticModule('3^-3.25^2')
             sage: J = JordanDecomposition(A)
             sage: J.orbit_list() == \
@@ -3374,7 +3446,9 @@ class JordanDecomposition(SageObject):
         OUTPUT:
             dictionary -- the mapping orbit --> the number of elements in this orbit
 
-        EXAMPLES:
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule, JordanDecomposition
             sage: A = FiniteQuadraticModule('3^-3.27^2')
             sage: J = JordanDecomposition(A)
             sage: J._orbit_list(3) == \
@@ -3689,7 +3763,9 @@ class JordanDecomposition(SageObject):
         OUTPUT:
             dictionary -- the mapping Q(x) --> the number of elements x with the same value Q(x)
 
-        EXAMPLES:
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule, JordanDecomposition
             sage: A = FiniteQuadraticModule('3^-3.27^2')
             sage: J = JordanDecomposition(A)
             sage: J.values() == \
@@ -3901,7 +3977,9 @@ class JordanDecomposition(SageObject):
         OUTPUT:
             dictionary -- the mapping Q(x) --> the number two-torsion elements x with the same value Q(x)
 
-        EXAMPLES:
+        EXAMPLES::
+
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule, JordanDecomposition
             sage: A = FiniteQuadraticModule('2_3^-3.4^2.8_2^-2')
             sage: J = JordanDecomposition(A)
             sage: J.two_torsion_values() == {0: 48, 1/4: 16, 1/2: 16, 3/4: 48}
