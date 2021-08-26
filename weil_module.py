@@ -206,6 +206,9 @@ class WeilModule (FormalSums):
         """        
         return cython_neg_index(ii,self._gen_orders)
 
+    def neg_index(self,ii):
+        return self._neg_index(ii)
+
     @cached_method
     def _elt(self,ii):
         r"""
