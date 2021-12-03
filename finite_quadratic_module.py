@@ -760,7 +760,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         # compare two quadmodules via their relations and Gram-Matrix
         return all([
             type(other) == type(self),
-            self.__R == other.__R,
+            self.relations() == other.relations(),
             self.gram() == other.gram()
             ])
 
