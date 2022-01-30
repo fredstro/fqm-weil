@@ -108,7 +108,7 @@ cdef class Vector_real_mpfr_dense(FreeModuleElement):
 
     def __dealloc__(self):
         cdef Py_ssize_t i
-        if self._entries<>NULL:
+        if self._entries!=NULL:
             sig_on()
             for i in range(self._degree):
                 mpfr_clear(self._entries[i])

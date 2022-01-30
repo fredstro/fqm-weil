@@ -100,7 +100,7 @@ cpdef cython_xis(int a, int b, int c, int d, W):
     for comp in JD:
         p=comp[1 ][0 ]
         xis[p]=1 
-    if(a*d <>0 ):
+    if(a*d !=0 ):
         if(is_even(sign)):
             argl=- 2 *sign
             xis[0 ]=z8**argl
@@ -134,7 +134,7 @@ cpdef cython_xis(int a, int b, int c, int d, W):
         #    continue
         if(p==2 ):
             if(is_even(c)):
-                if(c % q<>0 ):
+                if(c % q!=0 ):
                     odt=self._get_oddity(p,nq,r,ep,t)
                     argl=-a*ccq*odt
                     gammaf=z8**argl
@@ -145,7 +145,7 @@ cpdef cython_xis(int a, int b, int c, int d, W):
                 dc=kronecker(c,q**r)
                 xis[ 2 ]=xis[ 2 ]*dc
         else:
-            if(c%q <>0 ):
+            if(c%q !=0 ):
                 exc=W._get_pexcess(p,nq,r,ep)
                 argl=-exc
                 gammaf=z8**argl
@@ -203,7 +203,7 @@ cpdef weil_rep_matrix_mpc(W,a,b,c,d,filter=None,prec=53,verbose=0):
     """
     # Need a WeilModuleElement to compute the matrix
     e=W.basis()[0]
-    if filter<>None:
+    if filter!=None:
         return action_of_SL2Z_formula_mpc(e,a,b,c,d,filter,prec=prec,verbose=verbose)
     else:
         return action_of_SL2Z_formula_mpc(e,a,b,c,d,prec=prec,verbose=verbose)
@@ -234,7 +234,7 @@ cpdef action_of_T_mpc(W,int b=1,int sign=1,filter=None,prec=53,verbose=0):
     else:
         si=CF(1)
     for ii in range(0,n):
-        if filter<>None and filter[ii,ii]<>1:
+        if filter!=None and filter[ii,ii]!=1:
             continue
         if sign==1:
             r[ii,ii] = zl**(b*int(level*W.Q(ii)))
@@ -271,7 +271,7 @@ cpdef action_of_S_mpc(W,filter=None,int sign=1,int mult_by_fact=0,prec=53,verbos
         #si = W._K(W._QM.sigma_invariant())
     for ii in range(0 ,W._n):
         for jj in range(0 ,W._n):
-            if filter<>None and filter[ii,jj]<>1:
+            if filter!=None and filter[ii,jj]!=1:
                 continue
             arg = -sign*int(level*W.Bi(ii,jj))
             #arg = -W._level*W._QM.B(W._L[ii],W._L[jj])
@@ -315,7 +315,7 @@ cpdef action_of_STn_mpc(W,int pow=1,int sign=1,filter=None,prec=53,verbose=0):
         for jj in range(n):
             argl=int(level*(pow*W.Q(jj)-sign*W.Bi(ii,jj)))
             #ii = W._L.index(x); jj= W._L.index(j)
-            if filter<>None and filter[ii,jj]<>1:
+            if filter!=None and filter[ii,jj]!=1:
                 continue
             r[ii,jj] = si*zl**argl
     fac = CF.base_ring()(W._sqn)**-1
@@ -339,7 +339,7 @@ cpdef action_of_Z_mpc(W,filter=None,prec=53,verbose=0):
     z = (W._QM.sigma_invariant()**2).complex_embedding(prec)
     si = CF(z.real(),z.imag())
     for ii in range(n):
-        if filter<>None and filter[ii,ii]<>1:
+        if filter!=None and filter[ii,ii]!=1:
             continue
         jj=W._W._neg_index(ii)
         r[ii,jj]=si #CF(1)
@@ -362,7 +362,7 @@ cpdef action_of_Id_mpc(W,filter=None,prec=53,verbose=0):
     MS = MatrixSpace(CF,n)
     r = Matrix_complex_dense(MS,0)
     for ii in range(n):
-        if filter<>None and filter[ii,ii]<>1:
+        if filter!=None and filter[ii,ii]!=1:
             continue
         r[ii,ii]=1 
     #r = r*W._QM.sigma_invariant()**2 
@@ -395,7 +395,7 @@ cpdef action_of_Gamma0_mpc(W,a,b,c,d,filter=None,prec=53,verbose=0):
     z = W._zl.complex_embedding(prec)
     zl = CF(z.real(),z.imag())
     CI = CF(0,1)
-    if c % W._level <>0:
+    if c % W._level !=0:
         raise ValueError("Must be called with Gamma0(l) matrix! not A=" %([a,b,c,d]))
     #r = matrix(W._K,W._n)
     for ii in range(n):
@@ -508,7 +508,7 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
         print("si=",si)
     for na in range(n):
         for nb in range(n):
-            if filter <> None and filter[na,nb]==0:
+            if filter != None and filter[na,nb]==0:
                 continue
             if sign==-1:
                 #print type(nb)

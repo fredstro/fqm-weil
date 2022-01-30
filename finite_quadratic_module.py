@@ -4253,7 +4253,7 @@ def test_fqm_from_signature(num_tests=10,num_comp=4,prime_bd=5,pow_bd=3,verbose=
             
         if not M.is_isomorphic(N):
             raise ArithmeticError("{0} and {1} with symbol {2} are not isomorphic!".format(M,N,s))
-        # if(FQ.level() % 4 <> 0 or is_odd(info['sign'])):
+        # if(FQ.level() % 4 != 0 or is_odd(info['sign'])):
         #     continue
         # if verbose>0:
         #     print "FQ=",FQ," size=",l," level=",FQ.level()," sigma^4=",FQ.sigma_invariant()^4
