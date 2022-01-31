@@ -163,7 +163,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         INPUT
             R     -- an integral non-degenerate square matrix of size $n$
-                     representing the finite abelien group $\ZZ^n/R\ZZ^n$.
+                     representing the finite abelian group $\ZZ^n/R\ZZ^n$.
                     
             G     -- a symmetric rational matrix of same size as $R$ and such
                      that $R^tGR$ is half integral and $2*R*M$ is an
@@ -821,7 +821,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d,e,f,g,h,j> = FiniteQuadraticModule('11^-7.2^-2')
             sage: A.orthogonal_basis (11)
-            [g, f, e, d, c, 2*b, 2*a]
+            [c, d, e, f, g, 9*b, 9*a]
             sage: A.orthogonal_basis (2) 
             [h, j]
             sage: R.<X>= ZZ['X']
@@ -985,7 +985,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             sage: A3 = A.subgroup (3); A3
             < 0 >
             sage: A11 = A.subgroup (11); A11                                  
-            < 2*c, 2*b, 2*a >
+            < 9*c, 9*b, 9*a >
             sage: A11.order()
             1331
             sage: A2.order() 
@@ -3056,7 +3056,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
             sage: A.<a,b,c,d,e,f,g> = FiniteQuadraticModule('11^-7')
             sage: U = A.subgroup([a+b,b+c,c+d,d+e,e+f,f+g]); U
-            < 10*a + g, a + f, 10*a + e, a + d, 10*a + c, a + b >
+            < a + 10*g, b + g, c + 10*g, d + g, e + 10*g, f + g >
             sage: matrix(len(U.gens()), [x.dot(y) for x in U.gens() for y in U.gens()])
             [4/11 9/11 2/11 9/11 2/11 9/11]
             [9/11 4/11 9/11 2/11 9/11 2/11]
@@ -3065,12 +3065,12 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             [2/11 9/11 2/11 9/11 4/11 9/11]
             [9/11 2/11 9/11 2/11 9/11 4/11]
             sage: og_b = U.orthogonal_basis(); og_b
-            [10*a + g,
-             a + 2*b + g,
-             a + 10*b + 8*c + g,
-             a + 10*b + c + 4*d + g,
-             a + 10*b + c + 10*d + 6*e + g,
-             a + 10*b + c + 10*d + e + 6*f + g]
+            [a + 10*g,
+             a + 2*f + g,
+             a + 8*e + 10*f + g,
+             a + 4*d + e + 10*f + g,
+             a + 6*c + 10*d + e + 10*f + g,
+             a + 6*b + c + 10*d + e + 10*f + g]
              sage: matrix(len(og_b), [x.dot(y) for x in og_b for y in og_b])
              [4/11    0    0    0    0   0]
              [  0 1/11    0    0    0    0]
