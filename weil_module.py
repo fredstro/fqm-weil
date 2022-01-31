@@ -1032,7 +1032,7 @@ ss    Describes an element of a Weil module $K[A]$.
     #     TODO: check reduced words
     #     """
     #     if not hasattr(other,"parent"): return False
-    #     if self.parent()<>other.parent(): return False
+    #     if self.parent()!=other.parent(): return False
     #     v1 = self._coordinates
     #     v2 = other._coordinates
     #     if 
@@ -1747,7 +1747,7 @@ ss    Describes an element of a Weil module $K[A]$.
         for i in range(2):
             for j in range(2):
                 if A[i,j]!=M[i,j] and A[i,j]!=-M[i,j]:
-                    raise ValueError("\n A=\n{0} <> M=\n{1}, \n factor={2} ".format(A,M,fak))
+                    raise ValueError("\n A=\n{0} != M=\n{1}, \n factor={2} ".format(A,M,fak))
         return [r,fact]
 
     def _weil_matrix_from_list(self,fak,sgn):
@@ -1890,7 +1890,7 @@ ss    Describes an element of a Weil module $K[A]$.
         """
         if(n==0  or p==1 ):
             return 0 
-        #if( n % 2 <>0  and ep==-1 ):  # q is a square
+        #if( n % 2 !=0  and ep==-1 ):  # q is a square
         if( is_odd(n) and ep==-1 ):  # q is a square
             k=1 
         else:
@@ -1929,7 +1929,7 @@ def _entries(A):
             [a,b,c,d]=A
     except TypeError:
         [a,b,c,d]=A
-    #if(a*d-b*c<>1 ):
+    #if(a*d-b*c!=1 ):
     #    return None
     #else:
     return [a,b,c,d]
@@ -2009,7 +2009,7 @@ def kubota_cocycle(A,B):
 def kubota_sigma_symbol(c,d):
     r"""
     Compute sigma_A=sigma(c,d) for A = (a b // c d)
-    given by sigma_A = c if c<>0 else = d
+    given by sigma_A = c if c!=0 else = d
     """
     if c != 0:
         return c
