@@ -123,7 +123,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
     more precisely, the $(i,j)$-th entry $g_{i,j}$ is a rational number
     such that $Q(e_i+e_j)-Q(r_i)-Q(e_j) = g_{i,j} + \ZZ$..
 
-    NOTES ::
+    NOTES::
+
         The abelian group may also be thought of as $\ZZ^n/R\ZZ^n$,
         and the generators as $e_i = c_i + R\ZZ^n$, where $c_i$ is
         the canonical basis for $\ZZ^n$.
@@ -408,7 +409,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         EXAMPLES:
 
             sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-            sage: A = FiniteQuadraticModule([11,33]); A  
+            sage: A = FiniteQuadraticModule([11,33]); A
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/44*x0^2 + 1/132*x1^2
@@ -730,10 +731,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES::
 
-                        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-                        sage: A=FiniteQuadraticModule();
-                        sage: 3*A == A*3
-                        True
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+            sage: A=FiniteQuadraticModule();
+            sage: 3*A == A*3
+            True
         """
         
         # HINT:
@@ -1363,7 +1364,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         EXAMPLES::
 
             sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-            sage: A = FiniteQuadraticModule([1,3]); A      
+            sage: A = FiniteQuadraticModule([1,3]); A
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/4*x0^2 + 1/12*x1^2
@@ -1481,9 +1482,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES::
 
-        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule_ambient
-        sage: FiniteQuadraticModule_ambient._reduce(297/100)
-        97/100
+            sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule_ambient
+            sage: FiniteQuadraticModule_ambient._reduce(297/100)
+            97/100
         """
         return r - r.floor()
     
@@ -2180,7 +2181,7 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
     EXAMPLES::
 
         sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-        sage: N.<n> = FiniteQuadraticModule(); N                               
+        sage: N.<n> = FiniteQuadraticModule(); N
         Finite quadratic module in 1 generators:
          gens: 0
          form: 0
@@ -2377,7 +2378,8 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
 ##         sage: p.Q(x)
 ##         1/6
 
-    NOTES
+    NOTES::
+
         Code partly grabbed from sage.structure.element.AbelianGroupElement.
     """
 
@@ -2408,7 +2410,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
         if isinstance(x, (int, Integer)) and 0 == x:
             self.__intl_rep = [0 for i in range(n)]
         elif isinstance(x, list):
-            y = A._c2f(x) if can_coords == True else x
+            y = A._c2f(x) if can_coords else x
             self.__intl_rep = [y[i]%ed[i] for i in range(n)]
         else:
             raise TypeError("Argument x (= {0}) is of wrong type.".format(x))
@@ -3603,7 +3605,7 @@ class JordanDecomposition(SageObject):
                     values += [constantfactor * _orbit_length(rank, eps, Integer(0))]
                     values += [constantfactor * _orbit_length(rank, eps, Integer(1) / p)]
 
-                    if short == True:
+                    if short:
 
                         orbitdict[tuple([m] + multiplicities)] = tuple(values)
 
@@ -4118,7 +4120,7 @@ BUGS:
 
 def FiniteQuadraticModuleRandom(discbound=100,normbound=100,verbose=0):
     """
-    Returns a random finite quaratic module with discriminant within the discriminant bound.
+    Returns a random finite quadratic module with discriminant within the discriminant bound.
     
     """
     D = 0
@@ -4151,7 +4153,7 @@ def FiniteQuadraticModuleRandom(discbound=100,normbound=100,verbose=0):
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
     if len(list(A)) == 1:
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
-    if  max(list(map(max,A.gram().rows())))==0 and min(list(map(min,A.gram().rows())))==0:
+    if  max(map(max,A.gram().rows()))==0 and min(map(min,A.gram().rows()))==0:
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
 #if False == A.is_nondegenerate():
     #    return FiniteQuadraticModuleRandom(bound)
