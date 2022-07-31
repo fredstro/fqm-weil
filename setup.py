@@ -1,6 +1,5 @@
 import os
 import setuptools
-from numpy.distutils.misc_util import get_numpy_include_dirs
 from setuptools.extension import Extension
 from Cython.Build import cythonize
 # Check if we are currently in a SageMath environment.
