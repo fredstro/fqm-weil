@@ -1,0 +1,5 @@
+exclude src/fqm_weil/modules/weil_module_alg.c
+exclude src/fqm_weil/modules/weil_invariants.c
+include src/fqm_weil/modules/weil_module_alg.pyx
+include src/fqm_weil/modules/weil_invariants.pyx
+
