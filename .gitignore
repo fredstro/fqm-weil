@@ -1,0 +1,7 @@
+*.c
+*.so
+build/*
+dist/*
+linalg_gmp.egg-info/*
+src/fqm_weil/__pycache__/
+src/fqm_weil/version.py
