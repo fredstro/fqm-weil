@@ -32,40 +32,21 @@ REFERENCES:
 
 EXAMPLES::
 
-    sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+    sage: from fqm_weil.modules.finite_quadratic_module import FiniteQuadraticModule
     sage: F=FiniteQuadraticModule('5^1')
 
 
    
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
-#from sage.all_cmdline import *   # import sage library
-
 from builtins import range
 from sage.all import Integer,RR,CC,QQ,ZZ,sgn,cached_method,copy,CyclotomicField,lcm,is_square,matrix,SL2Z,MatrixSpace,\
     floor,ceil,is_odd,is_even,hilbert_symbol,sqrt,inverse_mod,xgcd,latex,kronecker,gcd,divisors,odd_part,gcd,valuation,\
     vector
 from sage.structure.formal_sum import FormalSums
 from sage.structure.formal_sum import FormalSum
-from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z
-from sage.modules.vector_integer_dense import Vector_integer_dense
+from .utils import factor_matrix_in_sl2z
 from .weil_module_alg import *
 from .finite_quadratic_module import FiniteQuadraticModuleElement,FiniteQuadraticModule
-
-#_sage_const_3 = Integer(3);
-#_sage_const_2 = Integer(2);
-#_sage_const_1 = Integer(1);
-#_sage_const_0 = Integer(0);
-#_sage_const_4 = Integer(4);
-#_sage_const_8 = Integer(8);
-#_sage_const_10000 = Integer(10000)
-
-###################################
-## CLASS WEIL_MODULE
-###################################
 
 
 class WeilModule (FormalSums):
@@ -77,7 +58,6 @@ class WeilModule (FormalSums):
     as $Mp(2,Z)$-module, where $K$ is the $lcm(l,8)$-th cyclotomic field
     if $l$ denotes the level of $A$.
     """
-
 
     def __init__(self, A,**kwds):
         r"""
@@ -306,8 +286,8 @@ class WeilModule (FormalSums):
 
         EXAMPLES::
 
-        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-        sage: from psage.modules.weil_module import WeilModule
+        sage: from fqm_weil.modules.finite_quadratic_module import FiniteQuadraticModule
+        sage: from fqm_weil.modules.weil_module import WeilModule
         sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
         sage: W = WeilModule(F)
         sage: A = SL2Z([1,2,1,3])
@@ -338,8 +318,8 @@ class WeilModule (FormalSums):
 
         EXAMPLES::
 
-        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-        sage: from psage.modules.weil_module import WeilModule
+        sage: from fqm_weil.modules.finite_quadratic_module import FiniteQuadraticModule
+        sage: from fqm_weil.modules.weil_module import WeilModule
         sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
         sage: W = WeilModule(F)
         sage: A = SL2Z([1,2,1,3])
@@ -835,8 +815,8 @@ ss    Describes an element of a Weil module $K[A]$.
 
         EXAMPLES::
 
-           sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-           sage: from psage.modules.weil_module import WeilModule
+           sage: from fqm_weil.modules.finite_quadratic_module import FiniteQuadraticModule
+           sage: from fqm_weil.modules.weil_module import WeilModule
            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
            sage: W = WeilModule(F)
            sage: a,b = F.gens()

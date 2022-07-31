@@ -28,7 +28,7 @@ AUTHOR:
 
 
 """
-
+import cython
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from sage.modules.vector_integer_dense import *
@@ -36,8 +36,9 @@ from sage.misc.functional import is_even
 from sage.arith.all import kronecker,odd_part,gcd,valuation,is_prime
 from sage.rings.integer import Integer
 from sage.rings.finite_rings.finite_field_constructor import FiniteField
-from psage.matrix.matrix_complex_dense import Matrix_complex_dense
-from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
+# from psage.matrix.matrix_complex_dense import Matrix_complex_dense
+from sage.matrix.matrix_generic_dense cimport Matrix_generic_dense
+# from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.all import MatrixSpace,is_odd
 from sage.rings.complex_mpfr cimport ComplexNumber
 from sage.rings.complex_mpfr import ComplexField
@@ -214,12 +215,12 @@ cpdef action_of_T_mpc(W,int b=1,int sign=1,filter=None,prec=53,verbose=0):
     r""" Action by the generator sign*T^pow=[[a,b],[0,d]]
     where a=d=sign
     """
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     cdef int n,ii,level
     n = W._n; level = W._level
     CF = MPComplexField(prec)
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     cdef MPComplexNumber zl,si
     cdef ComplexNumber z
     cdef RealNumber fac
@@ -247,13 +248,13 @@ cpdef action_of_S_mpc(W,filter=None,int sign=1,int mult_by_fact=0,prec=53,verbos
     r"""
     Action by the generator S=[[0,-1],[1,0]]
     """
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     CF = MPComplexField(prec)
     cdef RealNumber fac
     cdef int n,b,ii,level
     n = W._n; level = W._level
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     cdef MPComplexNumber zl,si
     cdef ComplexNumber z
     z = W._zl.complex_embedding(prec)
@@ -287,13 +288,13 @@ cpdef action_of_STn_mpc(W,int pow=1,int sign=1,filter=None,prec=53,verbose=0):
     ## Have to find a basefield that also contains the sigma invariant
     if pow==0:
         return action_of_S_mpc(W,filter,sign)
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     cdef RealNumber fac
     cdef int n,b,ii,jj,level,argl
     n = W._n; level = W._level
     CF = MPComplexField(prec)
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     cdef MPComplexNumber zl,si
     cdef ComplexNumber z
     z = W._zl.complex_embedding(prec)
@@ -326,13 +327,13 @@ cpdef action_of_Z_mpc(W,filter=None,prec=53,verbose=0):
     NOTE: we do not divide by |D|
     """
     ## Have to find a basefield that also contains the sigma invariant
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     CF = MPComplexField(prec)
     cdef RealNumber fac
     cdef int n,ii,level
     n = W._n; level = W._level
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     cdef MPComplexNumber si
     cdef ComplexNumber z
     #r = matrix(W._K,W._n)
@@ -354,13 +355,13 @@ cpdef action_of_Id_mpc(W,filter=None,prec=53,verbose=0):
     """
     ## Have to find a basefield that also contains the sigma invariant
     #r = matrix(W._K,W._n)
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     CF = MPComplexField(prec)
     cdef RealNumber fac
     cdef int ii
     n = W._n
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     for ii in range(n):
         if filter!=None and filter[ii,ii]!=1:
             continue
@@ -383,12 +384,12 @@ cpdef action_of_Gamma0_mpc(W,a,b,c,d,filter=None,prec=53,verbose=0):
                      of the matrix rho_{Q}(A) 
     """
 
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     cdef int n,sign,ii,jj,level,argl
     n = W._n; level = W._level
     CF = MPComplexField(prec)
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     cdef RealNumber fac
     cdef MPComplexNumber zl,si,CI
     cdef ComplexNumber z
@@ -440,7 +441,7 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
                      of the matrix rho_{Q}(A) 
     """
     
-    cdef Matrix_complex_dense r
+    cdef Matrix_generic_dense r
     cdef int n,sign,ii,jj,level,arg,ngamma_c,gi,nbm,nb,na
     cdef MPComplexNumber zl,si,zxi
     cdef ComplexNumber z
@@ -491,7 +492,7 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
     n = W._n; level = W._level
     CF = MPComplexField(prec)
     MS = MatrixSpace(CF,n)
-    r = Matrix_complex_dense(MS,0)
+    r = MS.zero()
     z = W._zl.complex_embedding(prec)
     zl = CF(z.real(),z.imag())
     zxi = CF(xi.real(),xi.imag())

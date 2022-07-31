@@ -23,6 +23,7 @@ r"""
 
   - Nils Skoruppa <nils.skoruppa@gmail.com>
   - Stephan Ehlen <stephan.j.ehlen@gmail.com>
+  - Fredrik Stromberg <fredrik314@gmail.com>
 
     Comments (doctest can not do magic functions like %timeit):
     Note that the below invariants ar enot the same as are currently produced.
@@ -74,10 +75,9 @@ from sage.all import copy, exp, Integer, pi, I, walltime, CyclotomicField, ZZ, Q
     kronecker, vector, CC, GF, next_prime, lcm, sqrt, cached_function, MatrixSpace#, sig_malloc, sig_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 from cython.parallel import prange
-from sage.matrix.matrix_modn_dense_double cimport Matrix_modn_dense_double
-from sage.matrix.matrix_modn_dense_float cimport Matrix_modn_dense_float
+# from sage.matrix.matrix_modn_dense_double cimport Matrix_modn_dense_double
+# from sage.matrix.matrix_modn_dense_float cimport Matrix_modn_dense_float
 import numpy as np
-
 
 cdef long _el_index(long * c, long *ed, int r) nogil:
     r"""
@@ -200,8 +200,8 @@ cpdef cython_invariants_dim(FQM, use_reduction = True, proof = True, debug=1):
 cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H = False):
     cdef long i, j = 0
     cdef long p = 0
-    cdef int l = long(FQM.level())
-    cdef long n = long(FQM.order())
+    cdef long l = <long>FQM.level()
+    cdef long n = <long>FQM.order()
     cdef long ii,jj = 0
     if debug > 1: print("l = ", l)
     
@@ -261,7 +261,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             zt = z**ii
             if debug > 0:
                 print("zt = {}**{} = {}".format(z, ii, zt))
-            table[ii] = long(K(s)*K(zt + s2 * zt**-1)/K(w))
+            table[ii] = <long>(K(s)*K(zt + s2 * zt**-1)/K(w))
         if proof and q > 0:
             if debug > 0: tt = walltime()
             if debug > 0: print("proof")
@@ -327,7 +327,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     if ed is NULL:
         raise MemoryError('Cannot allocate memory.')
     for i,d in enumerate(FQM.elementary_divisors()):
-        ed[i] = long(d)
+        ed[i] = <long>(d)
     if debug > 1: print(fed)
 
     J = FQM.__dict__['_FiniteQuadraticModule_ambient__J']
@@ -343,7 +343,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         if JJ[i] == NULL:
             raise MemoryError('Cannot allocate memory.')
         for j in range(r):
-            JJ[i][j] =  long((2*l*J[i,j]))
+            JJ[i][j] =  <long>((2*l*J[i,j]))
     #sig_off()
     if debug > 0: print('Gram matrix conversion: {0}'.format(walltime(t)))
 
@@ -571,7 +571,7 @@ cpdef invariants(FQM, use_reduction = True, proof = False, checks=False, debug =
     cdef int r = len(fed)
     ed = <long*> sig_malloc(sizeof(long) * r)
     for i,d in enumerate(FQM.elementary_divisors()):
-        ed[i] = long(d)
+        ed[i] = <long>(d)
 
     cdef long* vv = NULL
     for v in Ml:
