@@ -85,16 +85,14 @@ AUTHORS:
 
 TODO: Lots and lots of examples. 
 """
-from __future__ import print_function
-from __future__ import division
-
 from builtins import map
 from builtins import str
 from builtins import range
 from sage.functions.other                 import floor
-from sage.arith.all                       import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
-from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
-from sage.groups.group                    import AbelianGroup 
+from sage.arith.all                       import divisors, is_prime, kronecker, lcm, gcd, \
+    prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
+from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing, CC
+from sage.groups.abelian_gps.abelian_group                    import AbelianGroup
 from sage.modules.free_module_element     import vector
 from sage.matrix.matrix_space             import MatrixSpace
 from sage.matrix.constructor              import matrix, diagonal_matrix, identity_matrix
@@ -103,8 +101,9 @@ from sage.structure.sage_object           import SageObject
 from sage.structure.element               import AdditiveGroupElement
 from sage.structure.sequence              import Sequence_generic
 from sage.structure.all                   import Sequence
-from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,\
-    randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,cartesian_product,latex,random
+from sage.all                             import copy, cached_method, is_even, is_odd, Sequence,\
+    prod, uniq, valuation, randrange, is_fundamental_discriminant, xmrange, QuadraticField, xgcd,\
+    cartesian_product, latex,random
 from sage.structure.category_object import normalize_names
 from sage.graphs.graph import DiGraph
 from sage.rings.number_field.number_field_element import NumberFieldElement
@@ -158,7 +157,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         sage: hash(A) is not None
         True
     """
-    def __init__(self, R, G, check = True, names = None):
+    def __init__(self, R, G, check=True, names=None):
         r"""
         Initialize a quadratic module from R and G.
         
@@ -180,15 +179,17 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         if check:
             #TODO: check if R, G are matrices over ZZ, QQ, admit nonsquare R with rank == size G
-            if False == hasattr(R, '_matrix_') or False == hasattr(G, '_matrix_'):
+            if not hasattr(R, '_matrix_') or not hasattr(G, '_matrix_'):
                 raise TypeError("{0}: not a matrix".format(R))
-            if False == R.is_square() or 0 == R.det() or R.denominator() != 1:
+            if not R.is_square() or 0 == R.det() or R.denominator() != 1:
                 raise ValueError("{0}: list not a regular integral square matrix".format(R))
-            if False == G.is_square() or False == G.is_symmetric():
+            if not G.is_square() or not G.is_symmetric():
                 raise ValueError("{0}: list not a symmetric square matrix".format(G))
-            C0 = G*R; C = R.transpose()*C0; v = vector([C[i,i] for i in range(C.nrows())])
+            C0 = G*R
+            C = R.transpose()*C0
+            v = vector([C[i, i] for i in range(C.nrows())])
             if C0.denominator() > 2 or C.denominator() > 2 or v.denominator() > 1:
-                raise ValueError("({0},{1}): not a compatible pair".format(R,G))
+                raise ValueError("({0},{1}): not a compatible pair".format(R, G))
         AbelianGroup.__init__(self)
         # There is a sort of bug:
 ##         sage: M = matrix(ZZ,1,[1])       
@@ -199,12 +200,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 ##         ..............
 ##         TypeError: Cannot convert sage.matrix.matrix_integer_sparse.Matrix_integer_sparse to sage.matrix.matrix_integer_dense.Matrix_integer_dense
         # which we cure for the moment as follows:
-        MS = MatrixSpace (ZZ,R.nrows(),R.ncols())
+        MS = MatrixSpace(ZZ, R.nrows(), R.ncols())
         R = MS(R)
         # We keep the initializing pair $(R,G)$
         
         self.__iM = R
-        self.__iG = self._reduce_mat(G);
+        self.__iG = self._reduce_mat(G)
         self.__iM.set_immutable()
         self.__iG.set_immutable()
         # Also keep the input 'check' and generator names
@@ -224,24 +225,24 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         # are in the sequel called 'the fundamental system of generators'. 
         # TODO: In addition, $J$ should be put in Jordan form
         
-        D,U,V = matrix(ZZ, self.__R).dense_matrix().smith_form()
+        D, U, V = matrix(ZZ, self.__R).dense_matrix().smith_form()
 
         # Hence we have $D = U * __R * V$
         
         mask = []
         for n in range(D.nrows()):
-            if D[n,n] > 1:
+            if D[n, n] > 1:
                 mask.append(n)
         if 0 == len(mask):
             mask.append(0)
         self.__E = D.matrix_from_rows_and_columns(mask, mask).sparse_matrix()
-        T  = U**(-1)
+        T = U**(-1)
         self.__J = self._reduce_mat(
             (T.transpose()
-             *self.__iG
-             *T).matrix_from_rows_and_columns(mask, mask))
+             * self.__iG
+             * T).matrix_from_rows_and_columns(mask, mask))
         n = self.__E.nrows()
-        self.__elementary_divisors = tuple([self.__E[j,j] for j in range(n)])
+        self.__elementary_divisors = tuple([self.__E[j, j] for j in range(n)])
 
         # Transformation matrices:
         # can_sys = fun_gen * C2F, fun_sys = can_sys * F2C
@@ -256,18 +257,18 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         self.__ngens = self.__R.ncols()
         
         # define inerited ngens attribute 
-        if None == names:
+        if names is None:
             names = "e"
-            names = normalize_names(self.ngens(),names)
+            names = normalize_names(self.ngens(), names)
         self._assign_names(names)
 
         ## Silly class identifier needed since our class does not keep its name in sage....
-        self._is_FiniteQuadraticModule_ambient=True
+        self._is_FiniteQuadraticModule_ambient = True
 
         # zero of self
         self._zero = FiniteQuadraticModuleElement(self, 0, can_coords = True)
         # list of possible x_c's
-        self._xcs={}
+        self._xcs = {}
 
     def __hash__(self):
         return hash(self._cache_key())
@@ -276,7 +277,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         return ('FiniteQuadraticModule_ambient', self.__iM, self.__iG, self._check, self._names)
 
     ###################################
-    ## Introduce myself ...
+    # Introduce myself ...
     ###################################
 
 
@@ -299,8 +300,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         v = vector(PolynomialRing(QQ, 'x', n).gens())
         form = v.dot_product(self.gram() * v)
         return '\\left(\\left\\langle \\Z^{%s}/%s\\Z^{%s} \\right\\rangle, %s\\right)'\
-               %(latex(n), latex(self.__R), latex(n), latex(form))
-
+               % (latex(n), latex(self.__R), latex(n), latex(form))
 
     def _repr_(self):
         r"""
@@ -317,13 +317,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         gens = ', '.join([str(x) for x in self.gens()])
         form = v.dot_product(self.gram() * v)
         return 'Finite quadratic module in %s generators:\n gens: %s\n form: %s' \
-               %(n, gens, form)
- 
+               % (n, gens, form)
 
     ###################################
-    ## Providing struct. defining items
+    # Providing struct. defining items
     ###################################
-
 
     def ngens(self):
         r"""
@@ -345,7 +343,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return self.__ngens
 
-
     def gen(self, i=0):
         r"""
         Return the $i$-th generator of the underlying abelian group.
@@ -364,7 +361,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         x = [0]*self.ngens()
         x[int(i)] = 1
-        return FiniteQuadraticModuleElement(self, x, can_coords = True)
+        return FiniteQuadraticModuleElement(self, x, can_coords=True)
 
     def gens(self):
         r"""
@@ -390,7 +387,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return self.__R
 
-
     def gram(self):
         r"""
         Return the Gram matrix with respect to the generators
@@ -401,7 +397,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         return self.__G
 
-    
     def elementary_divisors(self):
         r"""
         Return the orders of the generators of the underlying group.
@@ -417,7 +412,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             (22, 66)
         """
         return self.__elementary_divisors
-
 
     def fgens(self):
         r"""
@@ -437,13 +431,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES NONE
         """
-        return tuple([self(list(x), can_coords = False) for x in identity_matrix(ZZ, len(self.elementary_divisors()))])
+        return tuple([self(list(x), can_coords=False) for x in identity_matrix(ZZ, len(self.elementary_divisors()))])
 
 
     ###################################
-    ## Coercion
+    # Coercion
     ###################################
-
 
     def __call__(self, x, can_coords = False):
         r"""
@@ -469,9 +462,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
 
     ###################################
-    ## Invariants
+    # Invariants
     ###################################
-
 
     def order(self):
         r"""
@@ -486,7 +478,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return prod(e for e in self.elementary_divisors())
 
-    
     def exponent(self):
         r"""
         If self is the quadratic module $(M,Q)$, then return the exponent of the
@@ -500,8 +491,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             66
         """
         return max(self.elementary_divisors())
-    
-    
+
     def level(self):
         r"""
         If self is the quadratic module $(M,Q)$, then return the smallest positive integer $l$
@@ -517,10 +507,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         H = copy(self.__J)
         for i in range(H.ncols()):
             for j in range(i+1, H.ncols()):
-                H[i,j] = 2*H[i,j]
-                H[j,i] = H[i,j]
+                H[i, j] = 2*H[i, j]
+                H[j, i] = H[i, j]
         return H.denominator()
-
 
     def tau_invariant(self, p = None):
         r"""
@@ -536,7 +525,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         return +1 if is_even(q.valuation(p)) else -1
 
     @cached_method
-    def sigma_invariant(self, p = None):
+    def sigma_invariant(self, p=None):
         r"""
         If this quadratic module equals $A=(M,Q)$, return
         $\sigma(A) = \sqrt{|M|}^{-1/2}\sum_{x\in M} \exp(-2\pi i Q(x))$
@@ -545,7 +534,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return self.char_invariant(-1, p)[0]
 
-        
     def witt_invariants(self):
         r"""
         Return the family $\{sigma(A(p)\}_p$ as dictionary,
@@ -563,9 +551,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         for p in P:
             s = self.sigma_invariant(p)
             t = self.tau_invariant(p)
-            d[p] = (s, t);
+            d[p] = (s, t)
         return d
-
 
     def char_invariant(self, s, p=None, debug=0):
         r"""
@@ -582,65 +569,72 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         s = s % self.level()
         if s == 0:
             return 1, 1
-        if not p is None and not is_prime(p):
+        if p is not None and not is_prime(p):
             raise TypeError
         if p and 0 != self.order() % p:
-            return 1,1
+            return 1, 1
         _p = p
-        K = CyclotomicField (8)
+        K = CyclotomicField(8)
         z = K.gen()
         jd = self.jordan_decomposition()
         ci = ci1 = 1
         for c in jd:
             # c: basis, (prime p,  valuation of p-power n, dimension r, determinant d over p [, oddity o]) 
-            p,n,r,d = c[1][:4]
-            if debug > 0: print("c=",c)
-            if debug > 0: print("p={0}, n={1}, r={2}, d={3}".format(p,n,r,d))
+            p, n, r, d = c[1][:4]
+            if debug > 0:
+                print("c=", c)
+            if debug > 0:
+                print("p={0}, n={1}, r={2}, d={3}".format(p, n, r, d))
             if _p and p != _p:
                 continue
             o = None if 4 == len(c[1]) else c[1][4]
-            if debug > 0: print("o={0}".format(o))
+            if debug > 0:
+                print("o={0}".format(o))
             k = valuation(s, p)
             s1 = Integer(s/p**k)
-            h = max(n-k,0)
-            if debug > 0: print("h={0}".format(h))
+            h = max(n-k, 0)
+            if debug > 0:
+                print("h={0}".format(h))
             q = p**h
-            if p!=2:
-                lci  = z**((r*(1-q))%8) * d**(h%2) if h > 0 else 1
+            if p != 2:
+                lci = z**((r*(1-q)) % 8) * d**(h % 2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
-            elif k == n and o != None:
-                #print "t!"
-                return 0,0
+            elif k == n and o is not None:
+                # print "t!"
+                return 0, 0
             else:
                 f = z**o if o else 1 
-                lci = f * d**(h%2) if h > 0 else 1
+                lci = f * d**(h % 2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
-                if debug > 0: print(f, d, lci) 
-            if 2 == p: lci = lci**s1
-            if debug > 0: print("lci=",lci)
-            if debug > 0: print("lci1={0}".format(lci1))
+                if debug > 0:
+                    print(f, d, lci)
+            if 2 == p:
+                lci = lci**s1
+            if debug > 0:
+                print("lci=",lci)
+            if debug > 0:
+                print("lci1={0}".format(lci1))
             ci *= lci * kronecker(s1, lci1**-1)
             ci1 *= lci1
         return ci, QQ(ci1).sqrt()
 
-    def signature(self,p=-1):
+    def signature(self, p=-1):
         r"""
         Compute the p-signature of self.
         p=-1 is the real signature.
         """
         if p == -1:
             p = None
-        inv = self.char_invariant(1,p)
+        inv = self.char_invariant(1, p)
         inv = inv[0].list()
-        if inv.count(1)>0:
+        if inv.count(1) > 0:
             return inv.index(1)
         else:
             return inv.index(-1) + 4
         
     ###################################
-    ## Deriving quadratic modules
+    # Deriving quadratic modules
     ###################################
-
 
     def __add__(self, B):
         r"""
@@ -655,8 +649,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 ##             sage: B = A + A; B
 
         """
-        return FiniteQuadraticModule_ambient(self.relations().block_sum(B.relations()), \
-                            self.gram().block_sum(B.gram()), \
+        return FiniteQuadraticModule_ambient(self.relations().block_sum(B.relations()),
+                            self.gram().block_sum(B.gram()),
                             False)
 
     def __rmul__(self, left):
@@ -692,14 +686,13 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             #      an inherited _r_action()
 
             # old implementation without using sum
-            #A = self
-            #for i in range(1, n): 
+            # A = self
+            # for i in range(1, n):
             #    A = A + self
-            #return A
+            # return A
             
             return sum(self for j in range(n))
             # sum works now, but depends on an existing __radd__ implementation
-
 
     def __radd__(self, thing_on_the_left):
         r"""
@@ -712,13 +705,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         EXAMPLES NONE
         """
         
-        #print "in __radd__ with a", type(thing_on_the_left), thing_on_the_left
+        # print "in __radd__ with a", type(thing_on_the_left), thing_on_the_left
         if thing_on_the_left == 0:
-            return self # 0 + self should be self, right?
+            return self  # 0 + self should be self, right?
         else:
             return ValueError("Argument n on the left (= {0}) must be 0.".format(thing_on_the_left))
             # what is for example 1 + FiniteQuadraticModule() ?
-
 
     # neither _rmul_ nor __rmul__ work for 3*A
     def _r_action(self, n): 
@@ -748,7 +740,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         else:
             raise TypeError("Argument n (= {0}) must be an integer.".format(n))
 
-        
     def __eq__(self, other):
         r"""
         Return True if other is a quadratic module having the same generator names,
@@ -806,8 +797,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             raise TypeError("Argument a (= {0}) must be an integer.".format(a))
         return FiniteQuadraticModule_ambient(self.relations(), a*self.gram())
 
-
-    def orthogonal_basis(self, p = None):
+    def orthogonal_basis(self, p=None):
         r"""
         Return an orthogonal system of generators for the
         underlying group of this quadratic module, if $p$ is None,
@@ -873,7 +863,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             raise TypeError
         return U.orthogonal_basis()
 
-
     def jordan_decomposition(self):
         r"""
         """
@@ -883,8 +872,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             self.__jd = JordanDecomposition(self)
         return self.__jd
 
-    
-    def spawn(self, gens, names = None):
+    def spawn(self, gens, names=None):
         r"""
         Spawn the subgroup generated by the elements of the list
         gens equipped with the quadratic form induced by this module as finite
@@ -893,7 +881,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         EXAMPLES NONE
         """
         return self.subgroup(gens).as_ambient(names)
-        
 
     def quotient(self, U):
         r"""
@@ -924,7 +911,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         K = V._matrix_()
         return FiniteQuadraticModule(K**(-1)*U._matrix_(), K.transpose()*self.__J*K)
 
-
     def __div__(self, U):
         r"""
         Return the quotient of $A/U$.
@@ -933,7 +919,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return self.quotient(U)
 
-    
     def __pow__(self, s):
         r"""
         Return the twist $A^s$.
@@ -941,7 +926,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         EXAMPLES NONE
         """
         return self.twist(s)
-    
 
     def anisotropic_kernel(self):
         r"""
@@ -962,13 +946,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         raise NotImplementedError
 
-
     ###################################
-    ## Deriving subgroups
+    # Deriving subgroups
     ###################################
-
     
-    def subgroup(self, arg = []):
+    def subgroup(self, arg=None):
         r"""
         Return a subgroup of the underlying abelian group $U$ of this quadratic module.
         Return the subgroup of $U$ generated by the elements in arg if arg is a list or tuple.
@@ -992,6 +974,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             sage: A2.order() 
             16
         """
+        if arg is None:
+            arg = []
         if isinstance(arg, (list, tuple)):
             if [] == list(arg):
                 arg = [self(0)]
@@ -999,10 +983,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         p = Integer(arg)
         if is_prime(p):
             U = FiniteQuadraticModule_subgroup(list(self.gens()))
-            U = U.split(p)[0] if 0 == U.order()%p else self.subgroup([self(0)])
+            U = U.split(p)[0] if 0 == U.order() % p else self.subgroup([self(0)])
             return U
         raise ValueError
-    
 
     def kernel(self):
         r"""
@@ -1031,7 +1014,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return self.dual_group(self.subgroup(self.gens()))
 
-
     def dual_group(self, U):
         r"""
         Return the dual subgroup
@@ -1051,59 +1033,57 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             $2H^tJx$ by the unit matrix and solving the corresponding
             system of linear equations over $\ZZ$
         """
-        H = U._matrix_() #matrix(U)
+        H = U._matrix_()  # matrix(U)
         X = 2*H.transpose()*self.__J
         n = len(self.elementary_divisors())
-        Y = X.augment(MatrixSpace(QQ,n).identity_matrix())
+        Y = X.augment(MatrixSpace(QQ, n).identity_matrix())
         K0 = matrix(ZZ, Y.transpose().integer_kernel().matrix().transpose())
         K = K0.matrix_from_rows(list(range(n)))        
-        l= [FiniteQuadraticModuleElement(self, x.list() , can_coords=False ) for x in K.columns() ]
+        l = [FiniteQuadraticModuleElement(self, x.list(), can_coords=False) for x in K.columns()]
         return self.subgroup(l)
-
 
     def kernel_subgroup(self,c):
         r"""
         Return the subgroup D_c={ x in D | cx=0}
         
         """
-        if not c in ZZ:
+        if c not in ZZ:
             raise ValueError("c has to be an integer.")
-        if gcd(c,self.order())==1:
+        if gcd(c, self.order()) == 1:
             return self.subgroup([])
-        l=[]
+        l = []
         for x in self:
             y = c*x
-            if y==self(0):
+            if y == self(0):
                 l.append(x)
         return self.subgroup(l)
 
-    def power_subgroup(self,c):
+    def power_subgroup(self, c):
         r"""
         Compute the subgroup D^c={c*x | x in D}
         
         """
-        l=[]
+        l = []
         for x in self:
             y = c*x
             if y not in l:
                 l.append(y)
         return self.subgroup(l)
 
-    def power_subset_star(self,c):
+    def power_subset_star(self, c):
         r"""    
         Compute the subset D^c*={x in D | cQ(y)+(x,y)=0, for all y in D_c}
         Using D^c* = x_c + D^c
         """
         xc = self.xc(c)
         Dc = self.power_subgroup(c)
-        res=[]
-        if xc==self._zero:
+        res = []
+        if xc == self._zero:
             return list(Dc)
         for x in Dc:
             res.append(x+xc)
         return res
-        
-    
+
     def xc(self,c):
         r"""
         Compute all non-zero values of the element x_c in the group D
@@ -1120,53 +1100,52 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         if is_odd(c):
             return self._zero
-        k = valuation(c,2)
+        k = valuation(c, 2)
         return self._xc(k)
         
-    def _xc(self,k):
+    def _xc(self, k):
         r"""
         Compute $x_c such that D^{c*} = x_c + D^{c} for c s.t. 2^k || c$
         """
-        if self._xcs=={}:
+        if self._xcs == {}:
             self._compute_all_xcs()
         if k in self._xcs:
             return self._xcs[k]
         return self._zero
             
-    def  _compute_all_xcs(self):
+    def _compute_all_xcs(self):
         r"""
         Computes all non-zero values of the element x_c in the group D
         OUTPUT: dictionary k => x_c  where 2^k || c
         """
-        J=self.jordan_decomposition()
-        res=dict()
-        res[0]=0 
+        J = self.jordan_decomposition()
+        res = dict()
+        res[0] = 0
         for c in J:
-            xc=0 
-            p,k,r,d = c[1][:4]
-            t = None if 4  == len(c[1]) else c[1][4]
-            if p != 2  or t == None:
+            xc = 0
+            p, k, r, d = c[1][:4]
+            t = None if 4 == len(c[1]) else c[1][4]
+            if p != 2 or t is None:
                 continue
-            q=2**k # = 2^n
-            JC=J.constituent(q)
-            CL=JC[0]
+            q = 2**k  # = 2^n
+            JC = J.constituent(q)
+            CL = JC[0]
             # print "CL(",q,")=",JC[0]
-            HOM=JC[1]
+            HOM = JC[1]
             # print "t=",t
             # We have an odd component
             for y in JC[0].orthogonal_basis():
                 # print "basis = ",y
-                z=JC[1](y)
+                z = JC[1](y)
                 # print "basis = ",z
-                xc=xc+(2 **(k-1 ))*z
-            res[k]=xc
+                xc = xc+(2 ** (k-1))*z
+            res[k] = xc
         self._xcs = res
         
     
     ###################################
-    ## Predicates
+    # Predicates
     ###################################
-
 
     def is_multiplicative(self):
         r"""
@@ -1189,7 +1168,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return False
 
-    
     def is_nondegenerate(self):
         r"""
         Return True or False accordingly if this module is
@@ -1210,15 +1188,14 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             return True
         else:
             return False
-        #return True if 1 == self.kernel().order() else False
+        # return True if 1 == self.kernel().order() else False
 
     def non_trivial(self):
         r"""
         Check if self is trivial.
         """
-        return self.order>1
-        
-        
+        return self.order > 1
+
     def is_isomorphic(self, A):
         r"""
         Return True or False accordingly as this quadratic module
@@ -1237,7 +1214,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
             Maybe wo do not need to check all divisors?
         """
-        if False == self.is_nondegenerate() or False == A.is_nondegenerate():
+        if not self.is_nondegenerate() or not A.is_nondegenerate():
             raise TypeError('the quadratic modules to compare must be non degenerate')
         if self.elementary_divisors() != A.elementary_divisors():
             return False
@@ -1246,7 +1223,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             if self.char_invariant(t) != A.char_invariant(t):
                 return False
         return True
-
 
     def is_witt_equivalent(self, A):
         r"""
@@ -1261,7 +1237,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         TODO
             Extend this function so to include also degenerate modules.       
         """
-        if False == self.is_nondegenerate() or False == A.is_nondegenerate():
+        if not self.is_nondegenerate() or not A.is_nondegenerate():
             raise TypeError('the quadratic modules to compare must be non degenerate')
         if self.tau_invariant() == A.tau_invariant():
             a = self.witt_invariants()
@@ -1272,9 +1248,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
 
     ###################################
-    ## Deriving other structures
+    # Deriving other structures
     ###################################
-
 
     def as_discriminant_module(self):
         r"""
@@ -1292,7 +1267,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             $F+U$ and $G+V$ are equivalent (viewed as quadratic forms) over $\Z$ (see [Sko]). 
         """
         pass
-    
 
     def orthogonal_group(self):
         r"""
@@ -1306,11 +1280,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         pass
 
-
     ###################################
-    ## Iterators
+    # Iterators
     ###################################
-
 
     def __iter__(self):
         r"""
@@ -1318,8 +1290,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES NONE return (x for x in self if self.Q(x) == 0 )
         """
-        return(self(x, can_coords = False) for x in xmrange(self.elementary_divisors()) ) 
-
+        return(self(x, can_coords=False) for x in xmrange(self.elementary_divisors()))
 
     def values(self):
         r"""
@@ -1341,16 +1312,15 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         valueDict = {}
         
         for x in self:
-            v= self.Q(x )
+            v = self.Q(x)
             if v in valueDict:
-                valueDict[v] +=1
+                valueDict[v] += 1
             else:
                 valueDict[v] = 1
                 
         return valueDict
-    
 
-    def subgroups(self, d = None  ):
+    def subgroups(self, d=None):
         r"""
         Return a list of all subgroups of $M$ of order $d$, where $M$
         is the underlying group of self, or of all subgroups if d is not set.
@@ -1418,7 +1388,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         elementary_divisors = self.elementary_divisors()
         N = len(elementary_divisors)
 
-        Mat = ZZ_N_times_N = MatrixSpace(ZZ, N )
+        Mat = ZZ_N_times_N = MatrixSpace(ZZ, N)
 
         def __enumerate_echelon_forms():
             """
@@ -1440,40 +1410,40 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 genString += ' ['
                 for c in range(N):
                     if c < r:
-                        v= 'n_'+str(r)+str(c)
-                        genString+= v+','
-                        forStringN+= 'for '+v+' in '+'range(d_'+str(r)+') '
-                    elif c==r:
+                        v = 'n_'+str(r)+str(c)
+                        genString += v+','
+                        forStringN += 'for '+v+' in '+'range(d_'+str(r)+') '
+                    elif c == r:
                         v = 'd_'+str(r)
-                        genString+= v+','
-                        forStringD+= 'for '+v+' in '+'divisors('+str(elementary_divisors[r])+') '
+                        genString += v+','
+                        forStringD += 'for '+v+' in '+'divisors('+str(elementary_divisors[r])+') '
                     else:
-                        genString+= '0,'
+                        genString += '0,'
     
-                genString = genString[:-1]+ '] ,'
+                genString = genString[:-1] + '] ,'
             genString = genString[:-1] + '] '
             
-            genExpression='(' + genString + forStringD + forStringN +') '
-            #print genExpression
-            #print "evaluating:", genExpression
+            genExpression = '(' + genString + forStringD + forStringN + ') '
+            # print genExpression
+            # print "evaluating:", genExpression
             return eval(genExpression )
 
         for h in __enumerate_echelon_forms():
             h1 = Mat(h)
             if FiniteQuadraticModule_subgroup._divides(h1, self.__E):
-                f= FiniteQuadraticModule_subgroup([FiniteQuadraticModuleElement(self, list(x), can_coords = False) for x in h1.transpose()])
+                f = FiniteQuadraticModule_subgroup([FiniteQuadraticModuleElement(self, list(x),
+                                                                                 can_coords=False)
+                                                    for x in h1.transpose()])
                 if d:
                     if f.order() == d:
                         yield f
                 else:
                     # d == None means we return every subgroup
                     yield f
-        
     
     ###################################
-    ## Auxiliary functions
+    # Auxiliary functions
     ###################################
-
 
     @staticmethod
     def _reduce(r):
@@ -1487,7 +1457,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             97/100
         """
         return r - r.floor()
-    
 
     @staticmethod
     def _reduce_mat(A):
@@ -1510,11 +1479,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         for i in range(A.nrows()):
             for j in range(A.ncols()):
                 if i == j:
-                    B[i,j] = FiniteQuadraticModule_ambient._reduce(A[i,j])
+                    B[i, j] = FiniteQuadraticModule_ambient._reduce(A[i,j])
                 else:
-                    B[i,j] = FiniteQuadraticModule_ambient._reduce(2*A[i,j])/QQ(2)
+                    B[i, j] = FiniteQuadraticModule_ambient._reduce(2*A[i,j])/QQ(2)
         return B
-
 
     @staticmethod
     def _rdc(R, x):
@@ -1532,11 +1500,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES NONE
         """
-        y=[0]*R.nrows()
-        k=[0]*R.nrows()
-        k[0],y[0] = divmod(Integer(x[0]), Integer(R[0,0]))
-        for i in range(1,R.nrows()):
-            k[i],y[i] = divmod(Integer(x[i] - sum(R[i,j]*k[j] for j in range(i))), Integer(R[i,i]))
+        y = [0]*R.nrows()
+        k = [0]*R.nrows()
+        k[0], y[0] = divmod(Integer(x[0]), Integer(R[0, 0]))
+        for i in range(1, R.nrows()):
+            k[i], y[i] = divmod(Integer(x[i] - sum(R[i, j]*k[j] for j in range(i))), Integer(R[i,i]))
         return y
 
 
