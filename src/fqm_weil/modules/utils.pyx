@@ -22,9 +22,10 @@ cpdef factor_matrix_in_sl2z(A, B=None, C=None, D=None, int verbose=0):
 
     EXAMPLES::
 
-    sage: A=SL2Z([-28,-5,-67,-12])
-    sage: factor_matrix_in_sl2z(A)
-    [1, 0, [-2, 2, -2, -6, 0]]
+        sage: from fqm_weil.modules.utils import factor_matrix_in_sl2z
+        sage: A=SL2Z([-28,-5,-67,-12])
+        sage: factor_matrix_in_sl2z(A)
+        (1, 0, [-2, 2, -2, -6, 0])
 
 
     """
@@ -102,7 +103,7 @@ cdef void _apply_one_pb_map(double *x, double *y, int *mapping, int *n, int * a,
         c[0] = aa
         d[0] = bb
 
-cdef tuple fast_sl2z_factor(int a, int b, int c, int d, int verbose=0):
+cpdef tuple fast_sl2z_factor(int a, int b, int c, int d, int verbose=0):
     r"""
     Factor a matrix in S and T.
     
@@ -119,10 +120,11 @@ cdef tuple fast_sl2z_factor(int a, int b, int c, int d, int verbose=0):
 
     EXAMPLES:
 
+        sage: from fqm_weil.modules.utils import fast_sl2z_factor
         sage: A=SL2Z([-28,-5,-67,-12])
         sage: a,b,c,d=A
         sage: fast_sl2z_factor(a,b,c,d)
-        [1, 0, [-2, 2, -2, -6, 0]]
+        (1, 0, [-2, 2, -2, -6, 0])
     """
     cdef double x, y
     x = 0.0

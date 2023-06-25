@@ -2,16 +2,18 @@
 Testing routines for finite quadratic modules.
 
 """
+from math import lcm
+
 from sage.all import ZZ, CC
-from sage.arith.misc import valuation, kronecker
+from sage.arith.misc import valuation, kronecker, gcd
 from sage.functions.other import floor
 from sage.misc.prandom import random
 from sage.rings.integer import Integer
 from sage.rings.number_field.number_field import CyclotomicField
 
-from src.fqm_weil.modules.finite_quadratic_module.finite_quadratic_module_ambient import \
+from fqm_weil.modules.finite_quadratic_module.finite_quadratic_module_ambient import \
     FiniteQuadraticModule, FiniteQuadraticModuleRandom
-from src.fqm_weil.modules.finite_quadratic_module.jordan_decomposition import JordanDecomposition
+from fqm_weil.modules.finite_quadratic_module.jordan_decomposition import JordanDecomposition
 
 
 def test_fqm_random(fqbound=100, nbound=10, cbound=10, size_bd=50, verbose=0):

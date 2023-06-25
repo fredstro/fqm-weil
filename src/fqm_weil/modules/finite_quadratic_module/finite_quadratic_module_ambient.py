@@ -1105,7 +1105,7 @@ def _FiniteQuadraticModule_from_string(S, **args):
                 if k == kronecker(t, 2):
                     c = [t]
                 else:
-                    raise ValueError
+                    raise ValueError("{0} is not a valid signature!".format(S))
             if abs(k) > 1:
                 CP = cartesian_product([[1, 3, 5, 7] for x in range(abs(k) - 1)])
                 # CP = eval("cartesian_product([" + "[1,3,5,7]," * (abs(k) - 1) + "])")
@@ -1118,7 +1118,7 @@ def _FiniteQuadraticModule_from_string(S, **args):
                         c.append(t - s)
                         break
                 if not c:
-                    raise ValueError
+                    raise ValueError("{0} is not a valid signature!".format(S))
         entry = {'a': a, 'k': k, 't': t, 'c': c}
         ElementList.append(entry)
 

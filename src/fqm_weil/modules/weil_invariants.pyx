@@ -51,9 +51,8 @@ r"""
           [                  0  1.000000000000000? -1.000000000000000? -1.000000000000000?  1.000000000000000?])
 
     EXAMPLES::
-
-        sage: from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-        sage: from psage.modules.weil_invariants import cython_invariants
+        sage: from fqm_weil.all import FiniteQuadraticModule
+        sage: from fqm_weil.all import cython_invariants
         sage: A = FiniteQuadraticModule('5^2')
         sage: X=cython_invariants(A); X
         ([(0, 0, 1), (7, 0, 2), (8, 0, 2), (11, 0, 2), (14, 0, 2)],
@@ -329,8 +328,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     for i,d in enumerate(FQM.elementary_divisors()):
         ed[i] = <long>(d)
     if debug > 1: print(fed)
-
-    J = FQM.__dict__['_FiniteQuadraticModule_ambient__J']
+    J = FQM.gram()
     #sig_on()
     t = walltime()
     cdef long** JJ = NULL
