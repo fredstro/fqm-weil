@@ -2,15 +2,304 @@ r"""
 Jordan decompositions of finite quadratic modules.
 
 """
+import logging
+
 from sage.all import ZZ
 from sage.arith.functions import lcm
 from sage.arith.misc import valuation, kronecker, is_prime, inverse_mod, is_prime_power
 from sage.functions.other import floor, binomial
 from sage.matrix.constructor import matrix
+from sage.misc.flatten import flatten
 from sage.misc.functional import is_odd, is_even
 from sage.misc.misc_c import prod
 from sage.rings.integer import Integer
 from sage.structure.sage_object import SageObject
+
+class JordanComponent(SageObject):
+    """
+    A Jordan component of a finite quadratic module.
+
+    EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1))
+            3^2
+            sage: A = FiniteQuadraticModule('3^1')
+            sage: JordanComponent(A.gens(), (3, 1, 1, 1))
+            3
+            sage: A = FiniteQuadraticModule('2_1^1')
+            sage: JordanComponent(A.gens(), (2, 1, 1, 1, 1))
+            2_1
+            sage: B = FiniteQuadraticModule('2^-2')
+            sage: JordanComponent(B.gens(), (2, 1, 2, -1))
+            2^-2
+            sage: C = FiniteQuadraticModule('2^2')
+            sage: JordanComponent(C.gens(), (2, 1, 2, 1))
+            2^2
+            sage: A = FiniteQuadraticModule('2_1^-5.3^-1')
+            sage: JordanComponent(A.gens()[0:5], (2, 1, 5, 1, 5))
+            2_5^5
+            sage: JordanComponent(A.gens()[5:], (3, 1, 1, -1))
+            3^-1
+            sage: A = FiniteQuadraticModule('2^2.3^2')
+            sage: JordanComponent(A.gens()[0:2], (3, 1, 2, 1))
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid basis: '(e0, e1)' need order 3
+            sage: JordanComponent(A.gens()[2:], (2, 1, 2, 1))
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid basis: '(e2, e3)' need order 2
+
+
+            TODO: Handle trivial jordan components.
+    """
+
+    def __init__(self, basis, invariants, check=True):
+        """
+        Initialize a Jordan component.
+
+        INPUT:
+
+        - `basis` -- tuple of generators
+        - `invariants` -- tuple of invariants (p, k, n, eps, t) (t is optional)
+        - `check` -- boolean (default: True)
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1))
+            3^2
+
+        """
+        super(JordanComponent, self).__init__()
+        if not isinstance(invariants, tuple) or not isinstance(basis, tuple):
+            raise ValueError("Invariants and basis must be tuples")
+        p, k, n, eps, *t = invariants
+        logging.debug(f"{invariants}")
+        logging.debug(basis)
+        if not is_prime(p) or (p > 2 and t != []) or len(t) > 1:
+            raise ValueError(f"Invalid invariant data: {invariants}")
+        if len(basis) != n:
+            raise ValueError(f"Invalid basis: '{basis}' or rank '{n}'")
+        if any(b.order() != p**k for b in basis):
+            raise ValueError(f"Invalid basis: '{basis}' need order {p**k}")
+        self.p = p
+        self.q = p**k
+        self.k = k
+        self.n = n
+        self.eps = eps
+        self.t = t[0] if t else None
+        self._basis = basis
+        self._invariants = invariants
+        self._type_II = False
+        self._type_I = False
+        if p == 2 and self.t is not None:
+            self._type_I = True
+            if check and n == 1 and any(b.norm() * 2 ** (k + 1) % 2 ** (k + 1) not in [1, 3] for b in basis):
+                raise ValueError("Incorrect basis for indecomposable type_I 2-adic component.")
+        elif p == 2:
+            self._type_II = True
+            if check and len(basis) % 2 == 1:
+                raise ValueError("Incorrect basis for type_II 2-adic component.")
+            if check and n == 2 and self.eps == -1:  # type 'B'
+                if any(b.norm() * (2 ** k) != 1 for b in basis):
+                    raise ValueError("Incorrect basis for type_II 2-adic component.")
+                if any(basis[i].dot(basis[i+1]) * 2 ** k != 1 for i in range(0, len(basis), 2)):
+                    raise ValueError("Incorrect basis for type_II 2-adic component.")
+            if check and n == 2 and self.eps == 1:
+                if any(b.norm() != 0 for b in basis):
+                    raise ValueError("Incorrect basis for type_II 2-adic component.")
+                if any(basis[i].dot(basis[i+1]) * 2 ** k != 1 for i in range(0, len(basis), 2)):
+                    raise ValueError("Incorrect basis for type_II 2-adic component.")
+        if n == 1:
+            self._indecomposable = True
+        elif n == 2 and self._type_II:
+            self._indecomposable = True
+        else:
+            self._indecomposable = False
+
+    def __repr__(self):
+        """
+        The Jordan symbol of the Jordan component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1))
+            3^2
+        """
+        return self.genus_symbol()
+
+    def genus_symbol(self):
+        """
+        The genus symbol of the Jordan component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: J = JordanComponent(A.gens(), (3, 1, 2, 1))
+            sage: J.genus_symbol()
+            '3^2'
+            sage: A = FiniteQuadraticModule('9^2')
+            sage: J = JordanComponent(A.gens(), (3, 2, 2, 1))
+            sage: J.genus_symbol()
+            '9^2'
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: J = JordanComponent(A.gens()[0:2], (2, 1, 2, 1))
+            sage: J.genus_symbol()
+            '2^2'
+            sage: J = JordanComponent(A.gens()[2:], (2, 2, 1, 1, 1))
+            sage: J.genus_symbol()
+            '4_1'
+
+
+        """
+        s = str(self.q)
+        e = self.n * self.eps
+        if self.t:
+            s += '_' + str(self.t)
+        if e != 1:
+            s += '^' + str(e)
+        return s
+
+    def invariants(self):
+        """
+        Invariants of the Jordan component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1)).invariants()
+            (3, 1, 2, 1)
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: J = JordanComponent(A.gens()[0:2], (2, 1, 2, 1))
+            sage: J.invariants()
+            (2, 1, 2, 1)
+            sage: J = JordanComponent(A.gens()[2:], (2, 2, 1, 1, 1))
+            sage: J.invariants()
+            (2, 2, 1, 1, 1)
+
+        """
+        return self._invariants
+
+    def basis(self):
+        """
+        Basis of the Jordan component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1)).basis()
+            (e0, e1)
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: J = JordanComponent(A.gens()[0:2], (2, 1, 2, 1))
+            sage: J.basis()
+            (e0, e1)
+            sage: J = JordanComponent(A.gens()[0:2], (2, 2, 1, 1, 1))
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid basis: '(e0, e1)' or rank '1'
+            sage: J = JordanComponent(A.gens()[2:], (2, 2, 1, 1, 1))
+            sage: J.basis()
+            (e2,)
+        """
+        return self._basis
+
+    def is_indecomposable(self):
+        """
+        Is the Jordan component indecomposable.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1)).is_indecomposable()
+            False
+            sage: A = FiniteQuadraticModule('3^1')
+            sage: JordanComponent(A.gens(), (3, 1, 1, 1)).is_indecomposable()
+            True
+            sage: A = FiniteQuadraticModule('2_2^2')
+            sage: JordanComponent(A.gens(), (2, 1, 2, 1, 2)).is_indecomposable()
+            False
+            sage: A = FiniteQuadraticModule('2^2')
+            sage: JordanComponent(A.gens(), (2, 1, 2, 1)).is_indecomposable()
+            True
+
+
+        """
+        return self._indecomposable
+
+    def decompose(self):
+        """
+        Return a decomposition of self.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1)).decompose()
+            [3, 3]
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2_1^3')
+            sage: JordanComponent(A.gens(), (2, 1, 3, -1, 5)).decompose()
+            [2_1, 2_1, 2_5^-1]
+            sage: A = FiniteQuadraticModule('2_1^-5')
+            sage: JordanComponent(A.gens(), (2, 1, 5, 1, 5)).decompose()
+            [2_1, 2_1, 2_1, 2_1, 2_1]
+
+        """
+        if self.is_indecomposable():
+            return [self]
+        if self.p > 2:
+            b0 = self.basis()[0]
+            return [JordanComponent((b0,), (self.p, self.k, 1, 1))] + \
+                JordanComponent(self.basis()[1:], (self.p, self.k, self.n-1, self.eps)).decompose()
+        if self._type_I:
+            b0 = self.basis()[0]
+            t_new = self.t - 1
+            if is_odd(self.k) and self.eps == -1:
+                t_new = (self.t + 4) % 8
+            return [JordanComponent((b0,), (self.p, self.k, 1, 1, 1))] + \
+                JordanComponent(self.basis()[1:], (self.p, self.k, self.n - 1, self.eps,
+                                                   t_new)).decompose()
+        if self._type_II:
+            b0, b1 = self.basis()[0:2]
+            # Decide whether to decompose to a 'B' or a 'C':
+            if b0.norm() == b1.norm() == 0 and b0.dot(b1) * self.q == 1:
+                eps = 1
+            elif self.q * b0.norm() == self.q * b1.norm() == 2 and b0.dot(b1) * self.q == 1:
+                eps = -1
+            else:
+                raise ArithmeticError("Component of type II not correct.")
+            return [JordanComponent((b0, b1), (self.p, self.k, 2, eps))] + \
+                JordanComponent(self.basis()[2:], (self.p, self.k, self.n - 2, self.eps * eps,
+                                                   )).decompose()
+
+    def as_finite_quadratic_module(self):
+        """
+        Return this component as an ambient finite quadratic module.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: A.jordan_decomposition()[0].as_finite_quadratic_module()
+            Finite quadratic module in 2 generators:
+             gens: e0, e1
+             form: 1/2*x0*x1
+            sage: A.jordan_decomposition()[1].as_finite_quadratic_module()
+            Finite quadratic module in 1 generator:
+             gen: e
+             form: 1/8*x^2
+        """
+        return self.basis()[0].parent().spawn(self.basis())[0]
 
 
 class JordanDecomposition(SageObject):
@@ -18,20 +307,44 @@ class JordanDecomposition(SageObject):
     A container class for the Jordan constituents of a
     finite quadratic module.
 
-    EXAMPLES NONE
-    """
+    EXAMPLES:
 
+        sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+        sage: A = FiniteQuadraticModule('2^2.4_1^1')
+        sage: A.jordan_decomposition()
+        Jordan decomposition with genus symbol '2^2.4_1'
+
+
+    """
     def __init__(self, A):
         r"""
+        Initialize a jordan decomposition.
+
         INPUT:
+
             A -- a nondegenerate finite quadratic module
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: A.jordan_decomposition()
+            Jordan decomposition with genus symbol '2^2.4_1'
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition()
+            Jordan decomposition with genus symbol '3^2.5^-1.7^4'
+            sage: E = FiniteQuadraticModule('4^-2.5^2')^2
+            sage: E.jordan_decomposition()
+            Traceback (most recent call last):
+            ...
+            ValueError: Not a nondegenerate module.
 
         TODO: The case of degenerate modules.
 
         """
         self.__A = A
         if not A.is_nondegenerate():
-            raise TypeError
+            raise ValueError("Not a nondegenerate module.")
         U = A.subgroup(A.gens())
         og_b = U.orthogonal_basis()
         jd = dict()
@@ -56,31 +369,109 @@ class JordanDecomposition(SageObject):
             ol.append((p, n))
         self.__jd = jd
         self.__ol = ol
+        self._jordan_components = {
+            q: JordanComponent(x[0], x[1]) for q, x in self.__jd.items()
+        }
+        super(JordanDecomposition, self).__init__()
 
     def _repr_(self):
         r"""
-        EXAMPLES NONE
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: A.jordan_decomposition() # indirect doctest
+            Jordan decomposition with genus symbol '2^2.4_1'
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition() # indirect doctest
+            Jordan decomposition with genus symbol '3^2.5^-1.7^4'
+
         """
-        return 'Jordan decomposition'
+        return f"Jordan decomposition with genus symbol '{self.genus_symbol()}'"
 
     def _latex_(self):
         r"""
-        EXAMPLES NONE
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: latex(A.jordan_decomposition()) # indirect doctest
+            Jordan decomposition with genus symbol '$2^2.4_1$'
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: latex(A.jordan_decomposition()) # indirect doctest
+            Jordan decomposition with genus symbol '$3^2.5^-1.7^4$'
+
         """
-        return 'Jordan decomposition'
+        return f"Jordan decomposition with genus symbol '${self.genus_symbol()}$'"
 
     def __iter__(self):
         r"""
-        Return the Jordan decomposition as iterator.
+        Return the Jordan decomposition as iterator of JordanComponent objects.
 
-        NOTE
-            The following is guaranteed. Returned is a list of pairs
-            basis, (prime p,  valuation of p-power n, dimension r, determinant e over p[, oddity o]),
+        The returned components in the list are given
+        (basis, (prime p,  valuation of p-power n, dimension r, determinant e over p[, oddity o]),
             where $n > 0$, ordered lexicographically by $p$, $n$.
 
-        EXAMPLES NONE
+
+
+        EXAMPLES:
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: list(A.jordan_decomposition()) # indirect doctest
+            [2^2, 4_1]
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: list(A.jordan_decomposition()) # indirect doctest
+            [3^2, 5^-1, 7^4]
+
         """
-        return (self.__jd[p ** n] for p, n in self.__ol)
+        return (self._jordan_components[p ** n] for p, n in self.__ol)
+
+    def __getitem__(self, item):
+        """
+        Get one or more components.
+
+        INPUT:
+
+        - item -- an integer or slice
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: A.jordan_decomposition()[0] # indirect doctest
+            2^2
+            sage: A.jordan_decomposition()[1] # indirect doctest
+            4_1
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition()[0] # indirect doctest
+            3^2
+            sage: A.jordan_decomposition()[1:3] # indirect doctest
+            [5^-1, 7^4]
+
+        """
+        p_and_n = self.__ol[item]
+        if isinstance(p_and_n, tuple):
+            p, n = p_and_n
+            return self._jordan_components[p**n]
+        return [self._jordan_components[p**n] for (p, n) in p_and_n]
+
+    def __len__(self):
+        """
+        Length of self.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: len(A.jordan_decomposition())
+            2
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: len(A.jordan_decomposition())
+            3
+
+        """
+        return len(self.__ol)
 
     def genus_symbol(self, p=None):
         r"""
@@ -89,12 +480,20 @@ class JordanDecomposition(SageObject):
         Return the concatenation of all local genus symbols
         if no argument is given.
 
+        INPUT:
+
+        - ``p`` -- prime (default: ``None``)
+
         EXAMPLES::
 
-        We check that the calculation of the genus symbol is correct
-        for 2-adic symbols.
 
             sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: A.jordan_decomposition().genus_symbol()
+            '2^2.4_1'
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition().genus_symbol()
+            '3^2.5^-1.7^4'
             sage: M = FiniteQuadraticModule('2^-2.2_1^1'); M
             Finite quadratic module in 3 generators:
              gens: e0, e1, e2
@@ -130,31 +529,48 @@ class JordanDecomposition(SageObject):
         whose exponent is a power of the prime $p$.
         Do not use directly, use genus_symbol() instead.
 
-        EXAMPLES NONE
+        INPUT:
+
+        - ``p`` -- prime
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: A.jordan_decomposition()._genus_symbol(2)
+            '2^2.4_1'
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition()._genus_symbol(3)
+            '3^2'
+            sage: A.jordan_decomposition()._genus_symbol(5)
+            '5^-1'
+            sage: A.jordan_decomposition()._genus_symbol(7)
+            '7^4'
+            sage: M = FiniteQuadraticModule('2^-2.2_1^1'); M
+            Finite quadratic module in 3 generators:
+             gens: e0, e1, e2
+             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 1/4*x2^2
+            sage: M.jordan_decomposition()._genus_symbol(2)
+            '2_1^-3'
+            sage: M.jordan_decomposition()._genus_symbol(3)
+            ''
+
         """
-        l = [q for q in self.__jd.keys() if 0 == q % p]
-        if [] == l:
-            return ''
-        l.sort(reverse=True)
-        s = ''
-        while l != []:
-            q = l.pop()
-            s += str(q)
-            gs = self.__jd[q][1]
-            e = gs[2] * gs[3]
-            if len(gs) > 4:
-                s += '_' + str(gs[4])
-            if 1 != e:
-                s += '^' + str(e)
-            if l != []:
-                s += '.'
-        return s
+        # l = [q for q in self.__jd.keys() if q % p == 0]
+        # l.sort(reverse=True)
+        return '.'.join([self._jordan_components[p**k].genus_symbol() for (p0, k) in self.__ol if p == p0])
 
     def orbit_list(self, p=None, short=False):
         r"""
         If this is the Jordan decomposition for $(M,Q)$, return the dictionary of
         dictionaries of orbits corresponding to the p-groups of $M$.
         If a prime p is given only the dictionary of orbits for the p-group is returned.
+
+        INPUT:
+
+        - ``p`` -- prime (default: ``None``)
+        - ``short`` -- boolean (default: False)
+
         OUTPUT:
             dictionary -- the mapping p --> (dictionary -- the mapping orbit --> the number of elements in this orbit)
 
@@ -262,6 +678,11 @@ class JordanDecomposition(SageObject):
         r"""
         If this is the Jordan decomposition for $(M,Q)$, return the dictionary of
         orbits corresponding to the p-group of $M$.
+
+        INPUT:
+
+        - ``p`` -- prime
+        - ``short`` -- boolean (default: False)
 
         OUTPUT:
             dictionary -- the mapping orbit --> the number of elements in this orbit
@@ -793,7 +1214,7 @@ class JordanDecomposition(SageObject):
             l = sorted([q for q in self.__jd.keys() if 0 == q % 2])
             if debug > 0:
                 print(l)
-            while l != []:
+            while l:
                 q = l.pop()
                 gs = self.__jd[q][1]
                 if len(gs) > 4:
@@ -805,7 +1226,7 @@ class JordanDecomposition(SageObject):
 
         _P.sort(reverse=True)
 
-        while [] != _P:
+        while _P:
             p = _P.pop()
             if debug > 0:
                 print("p = {0}".format(p))
@@ -851,10 +1272,11 @@ class JordanDecomposition(SageObject):
     def two_torsion_values(self):
         r"""
         If this is the Jordan decomposition for $(M,Q)$, return the values of $Q(x)$
-        for $x \in M_2=\{x \in M | 2*x = 0\}$, the subgroup of two-torsion elements as a dictionary.
+        for $x \in M_2=\{x \in M | 2*x = 0\}$, the subgroup of two-torsion elements as a dict.
 
         OUTPUT:
-            dictionary -- the mapping Q(x) --> the number two-torsion elements x with the same value Q(x)
+
+            dict -- the mapping Q(x) --> the number two-torsion elements x with the same value Q(x)
 
         EXAMPLES::
 
@@ -885,18 +1307,18 @@ class JordanDecomposition(SageObject):
             return newlist
 
         def two_torsion_values_even2adic(gs):
-            p, l, n, eps = gs
+            p, k, n, eps = gs
             n /= 2
             fourn = 4 ** n
-            if l == 1:
+            if k == 1:
                 epstwon = eps * 2 ** n
                 return [(fourn + epstwon) / 2, (fourn - epstwon) / 2]
             else:
                 return [fourn]
 
         def two_torsion_values_odd2adic(gs):
-            p, l, n, eps, t = gs
-            if l == 1:
+            p, k, n, eps, t = gs
+            if k == 1:
                 # print "n:", n, "eps:", eps, "t:", t, "n-t:", n-t, (n-t)/2
                 if eps == -1:
                     t = (t + 4) % 8
@@ -912,15 +1334,15 @@ class JordanDecomposition(SageObject):
                     list2 = [[1, 0, 0, 1], [1, 0, 1, 2], [1, 1, 3, 3]][n2 - 1]
                     # print list2
                     return combine_lists(list1, list2)
-            elif l == 2:
+            elif k == 2:
                 twonminusone = 2 ** (n - 1)
                 return [twonminusone, twonminusone]
             else:
                 return [2 ** n]
 
-        l = sorted([q for q in self.__jd.keys() if 0 == q % 2])
-        while l != []:
-            q = l.pop()
+        even_qs = sorted([q for q in self.__jd.keys() if 0 == q % 2])
+        while even_qs:
+            q = even_qs.pop()
             gs = self.__jd[q][1]
             if len(gs) > 4:
                 values = combine_lists(values, two_torsion_values_odd2adic(gs))
@@ -932,40 +1354,140 @@ class JordanDecomposition(SageObject):
 
         return valuesdict
 
-    def constituent(self, q, names=None):
+    def constituent(self, q):
         r"""
         Return the Jordan constituent whose exponent is the
         prime power "q".
 
-        EXAMPLES NONE
+        INPUT:
+
+        - ``q`` - a prime power
+
+        EXAMPLES:
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: A.jordan_decomposition().constituent(2)
+            2^2
+            sage: A.jordan_decomposition().constituent(4)
+            4_1
+            sage: A.jordan_decomposition().constituent(3) is None
+            True
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition().constituent(3)
+            3^2
+            sage: A.jordan_decomposition().constituent(5)
+            5^-1
+            sage: A.jordan_decomposition().constituent(7)
+            7^4
         """
         if not is_prime_power(q):
             raise TypeError
-        gens = self.__jd.get(q, ((), ()))[0]
-        # print("gens=",gens)
-        return self.__A.spawn(gens, names)
+        return self._jordan_components.get(q)
 
     def finite_quadratic_module(self):
         r"""
         Return the finite quadratic module who initialized
         this Jordan decomposition.
 
-        EXAMPLES NONE
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: A.jordan_decomposition().finite_quadratic_module() == A
+            True
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition().finite_quadratic_module() == A
+            True
+
         """
         return self.__A
 
-    def basis(p=None):
+    def basis(self, p=None):
         r"""
-        TODO
+        Return a basis of this Jordan decomposition given by the basis in each component.
+
+        INPUT:
+
+        - ``p`` -- prime (default: ``None``)
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: A.jordan_decomposition().basis()
+            [e0, e1, e2]
+            sage: A.jordan_decomposition().basis() == list(A.gens())
+            True
+            sage: A = FiniteQuadraticModule('3^2.5^-1.7^4')
+            sage: A.jordan_decomposition().basis()
+            [e0, e1, e2, e3, e4, e5, e6]
+            sage: A.jordan_decomposition().basis() == list(A.gens())
+            True
         """
-        raise NotImplementedError
+        return flatten([x.basis() for x in self if p is None or x.p == p])
 
     @staticmethod
     def is_type_I(F):
         r"""
-        EXAMPLES NONE
+        Return True if the matrix F corresponds to a Gram matrix of a type-I component,
+        otherwise return False.
+
+        INPUT:
+
+        - 'F' -- an integer matrix
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: F = A.gram_bilinear()*4
+            sage: A.jordan_decomposition().is_type_I(F)
+            True
+            sage: A = FiniteQuadraticModule('2^2')
+            sage: F = A.gram_bilinear()*2
+            sage: A.jordan_decomposition().is_type_I(F)
+            False
+            sage: A = FiniteQuadraticModule('2_2^2')
+            sage: F = A.gram_bilinear() * 2
+            sage: A.jordan_decomposition().is_type_I(F)
+            True
+            sage: F = A.gram_bilinear()
+            sage: A.jordan_decomposition().is_type_I(F)
+            Traceback (most recent call last):
+            ...
+            ValueError: F must have integer diagonal
+
+
         """
         for i in range(F.nrows()):
+            if not F[i, i] in ZZ:
+                raise ValueError("F must have integer diagonal")
             if is_odd(F[i, i]):
                 return True
         return False
+
+    def decompose(self, p0=None):
+        """
+        List of all indecomposable Jordan components of self.
+
+        INPUT:
+
+        - ``p0`` -- a prime (default: ``None``)
+
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: A.jordan_decomposition().decompose()
+            [3, 3]
+            sage: A = FiniteQuadraticModule('2_1^3')
+            sage: A.jordan_decomposition().decompose()
+            [2_1, 2_1, 2_5^-1]
+            sage: A = FiniteQuadraticModule('2_1^-5')
+            sage: A.jordan_decomposition().decompose()
+            [2_1, 2_1, 2_1, 2_1, 2_1]
+
+        """
+        return flatten([jc.decompose() for jc in self])
