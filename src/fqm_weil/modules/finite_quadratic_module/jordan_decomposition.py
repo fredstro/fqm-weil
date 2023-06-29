@@ -462,6 +462,31 @@ class JordanComponent(SageObject):
         else:
             return 1
 
+    def signature(self):
+        """
+        Return the p-signature of this component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1.3^2')
+            sage: A.jordan_decomposition()[0].signature()
+            0
+            sage: A.jordan_decomposition()[1].signature()
+            4
+            sage: A.jordan_decomposition()[2].signature()
+            1
+            sage: A.signature()
+            5
+
+        """
+        k = 1 if self.eps ** self.k == -1 else 0
+        if is_odd(self.p):
+            return (self.n * (self.q - 1) + 4 * k) % 8
+        else:
+            t = self.t or 0
+            return (t + 4 * k) % 8
+
 
 class JordanDecomposition(SageObject):
     r"""
