@@ -266,27 +266,38 @@ class FiniteQuadraticModuleElement(FGP_Element):
         EXAMPLES::
 
             sage: from fqm_weil.all import FiniteQuadraticModule
-            sage: F=FiniteQuadraticModule([3])
-            sage: x = F.gens()[0]
-            sage: x
-            e
+            sage: A = FiniteQuadraticModule('4^2.2_1')
+            sage: x = A.gens()[0]
+            sage: x/1 == x
+            True
 
+        Division by integer dividing the order is not unique
+
+            sage: (2*x)/2 == x
+            False
+            sage: ((2*x)/2 - x).order()
+            2
+
+        Division by an integer coprime to the order is unique
+
+            sage: (3*x)/3 ==  x
+            True
 
         """
         coords = []
-        for i, x in enumerate(self.list()):
-            if x == 0:
+        for i, x in enumerate(self.list(coords='fundamental')):
+            if not x:
                 coords.append(0)
                 continue
-            modulus = self.parent().gens_orders()[i]
+            modulus = self.parent().elementary_divisors()[i]
             t = gcd(c, modulus)
             if t != 1 and x % t != 0:
-                raise ValueError(f"This element is not divisuble by '{c}'")
+                raise ValueError(f"This element is not divisible by '{c}'")
             x = x / t
             s = c // t
             s1 = s.inverse_mod(modulus // t)
             coords.append(x*s1)
-        return self.parent()(coords)
+        return self.parent()(coords, coords='fundamental')
 
     def _richcmp_(self, right, op):
         """

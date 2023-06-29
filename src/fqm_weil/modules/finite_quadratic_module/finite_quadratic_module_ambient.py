@@ -193,16 +193,14 @@ class FiniteQuadraticModule_ambient(FiniteQuadraticModule_base):
             sage: from fqm_weil.all import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('11^-1')
             sage: list(A.jordan_decomposition())
-            [((e,), (11, 1, 1, -1))]
+            [11^-1]
             sage: A = FiniteQuadraticModule([11,33]);
             sage: list(A.jordan_decomposition())
-             [((11*e0, 33*e1), (2, 1, 2, -1, 4)),
-             ((22*e1,), (3, 1, 1, 1)),
-             ((2*e0, 6*e1), (11, 1, 2, 1))]
+            [2_4^-2, 3, 11^2]
             sage: list(FiniteQuadraticModule('2_1.4^2').jordan_decomposition())
-            [((e0,), (2, 1, 1, 1, 1)), ((e1, e2), (2, 2, 2, 1))]
+            [2_1, 4^2]
             sage: list(FiniteQuadraticModule('4^2.2_1').jordan_decomposition())
-            [((e2,), (2, 1, 1, 1, 1)), ((e0, e1), (2, 2, 2, 1))]
+            [2_1, 4^2]
 
         """
         try:
@@ -563,27 +561,37 @@ class FiniteQuadraticModule_ambient(FiniteQuadraticModule_base):
         """
         return self.subgroup(list(set([c * x for x in self])))
 
-    def power_subset_star(self, c):
+    def power_subset_star(self, c, check=False):
         r"""
         Compute the subset D^c*={x in D | cQ(y)+(x,y)=0, for all y in D_c}
         Using D^c* = x_c + D^c
+
+        INPUT:
+
+        - `c` -- integer
+        - `check` -- boolean (default: False) if True then we cchek the definition
 
         EXAMPLES::
 
             sage: from fqm_weil.all import FiniteQuadraticModule
             sage: A.<a,b> = FiniteQuadraticModule([3,3], [1/3,1/3,1/3])
-            sage: A.power_subset_star(1)
+            sage: A.power_subset_star(1, check=True)
             [0, b, 2*b, a, a + b, a + 2*b, 2*a, 2*a + b, 2*a + 2*b]
-
-        """
-        # c^-1*S0 \cap S0^\perp
+            sage: F.<a,b,c> = FiniteQuadraticModule('2_1^1.2^2')
+            sage: F.power_subset_star(2, check=True)
+            [a]
+            """
         xc = self.xc(c)
         Dc = self.power_subgroup(c)
-        res = []
-        if xc == self._zero:
-            return list(Dc)
-        for x in Dc:
-            res.append(x + xc)
+        res = [x + xc for x in Dc]
+        if check:
+            res_by_definition = [
+                x for x in self if all(c * self.Q(y) + self.B(x, y) in ZZ
+                                       for y in self.kernel_subgroup(c))
+            ]
+            if set(res) != set(res_by_definition):
+                raise ArithmeticError("Formula using x_c disagrees with definition!"
+                                      f"By def: {res_by_definition}")
         return res
 
     def power_subset_kernel_star(self, c, S0=None):
@@ -657,11 +665,16 @@ class FiniteQuadraticModule_ambient(FiniteQuadraticModule_base):
             0
             sage: F.xc(2)
             e
-            sage: F = FiniteQuadraticModule('2_1^1.2^2')
+            sage: F = FiniteQuadraticModule('4^2.2_1')
+            sage: F.xc(1)
+            0
             sage: F.xc(2)
-            e0 + e1 + e2
+            e2
+            sage: F.<a,b,c> = FiniteQuadraticModule('2_1^1.2^2')
+            sage: F.xc(2)
+            a
             sage: F.xc(6)
-            e0 + e1 + e2
+            a
 
         """
         if is_odd(c):
@@ -699,27 +712,19 @@ class FiniteQuadraticModule_ambient(FiniteQuadraticModule_base):
             sage: from fqm_weil.all import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('2_1^1')
             sage: A._compute_all_xcs()
-            sage: A._xcs(1)
+            sage: A._xcs
             {0: 0, 1: e}
         """
         J = self.jordan_decomposition()
         res = dict()
         res[0] = 0
-        for c in J:
-            xc = 0
-            p, k, r, d = c[1][:4]
-            t = None if 4 == len(c[1]) else c[1][4]
-            if p != 2 or t is None:
+        for comp in J:
+            # p, k, r, d = c.[1][:4]
+            # t = None if 4 == len(c[1]) else c[1][4]
+            if comp.p != 2 or comp.t is None:
                 continue
-            q = 2 ** k  # = 2^n
-            JC = J.constituent(q)
-            CL = JC[0]
-            HOM = JC[1]
-            # We have an odd component
-            for y in CL.orthogonal_basis():
-                z = HOM(y)
-                xc = xc + (2 ** (k - 1)) * z
-            res[k] = xc
+            res[comp.k] = sum(2 ** (comp.k - 1) * ind.basis()[0]
+                              for ind in comp.decompose() if ind.is_type_I())
         self._xcs = res
 
     def subgroups(self, d=None):
