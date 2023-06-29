@@ -8,7 +8,8 @@ AUTHORS:
 
 """
 from sage.all import ZZ, CC, RR, QQ
-from sage.arith.misc import kronecker, gcd, divisors, odd_part, valuation, inverse_mod
+from sage.arith.misc import kronecker, gcd, divisors, odd_part, valuation, inverse_mod, \
+    hilbert_symbol
 from sage.functions.generalized import sgn
 from sage.matrix.constructor import matrix
 from sage.misc.cachefunc import cached_method
@@ -19,11 +20,10 @@ from sage.modules.free_module_element import vector
 from sage.rings.integer import Integer
 from sage.structure.formal_sum import FormalSum
 
-from src.fqm_weil.modules.finite_quadratic_module.finite_quadratic_module_element import \
+from fqm_weil.modules.finite_quadratic_module.finite_quadratic_module_element import \
     FiniteQuadraticModuleElement
-from src.fqm_weil.modules.utils import factor_matrix_in_sl2z
-from src.fqm_weil.modules.weil_module import WeilModule, _entries, hilbert_symbol_infinity, \
-    sigma_cocycle
+from fqm_weil.modules.utils import factor_matrix_in_sl2z
+from fqm_weil.modules.weil_module import _entries\
 
 
 class WeilModuleElement(FormalSum):
@@ -51,8 +51,8 @@ class WeilModuleElement(FormalSum):
         """
         self._coordinates = []
         self._verbose = verbose
-        if parent == None:
-            parent = WeilModule(d.parent())
+        # if parent == None:
+        #     parent = WeilModule(d.parent())
         if not hasattr(parent, '_is_WeilModule'):
             raise TypeError(
                 "Call as WeilModuleElement(W,d) where W=WeilModule. Got W={0}".format(parent))
@@ -1097,3 +1097,89 @@ class WeilModuleElement(FormalSum):
         x = vector(x.list())
         x.set_immutable()
         return self._W._el_index(x)
+
+
+def sigma_cocycle(A, B):
+    r"""
+    Computing the cocycle sigma(A,B) using the Theorem and Hilbert symbols
+
+    INPUT:
+
+    -''A'' -- matrix in SL(2,Z)
+    -''B'' -- matrix in SL(2,Z)
+
+    OUTPUT:
+
+    -''s'' -- sigma(A,B) \in {1,-1}
+
+    EXAMPLES::
+
+
+    sage: S,T=SL2Z.gens()
+
+
+    """
+    [a1, b1, c1, d1] = _entries(A)
+    [a2, b2, c2, d2] = _entries(B)
+    if c2 * c1 != 0:
+        C = A * B
+        [a3, b3, c3, d3] = _entries(C)
+        if c3 != 0:
+            # print "here",c3*c1,c3*c2
+            return hilbert_symbol(c3 * c1, c3 * c2, -1)
+        else:
+            return hilbert_symbol(c2, d3, -1)
+    elif c1 != 0:
+        return hilbert_symbol(-c1, d2, -1)
+    elif c2 != 0:
+        return hilbert_symbol(-c2, d1, -1)
+    else:
+        return hilbert_symbol(d1, d2, -1)
+
+
+def hilbert_symbol_infinity(a, b):
+    if (a < 0 and b < 0):  # or (a == 0 and b < 0) or (a < 0 and b == 0):
+        return -1
+    return 1
+
+
+def kubota_cocycle(A, B):
+    r"""
+    Computing the cocycle sigma(A,B) using the Theorem and Hilbert symbols
+
+    INPUT:
+
+    -''A'' -- matrix in SL(2,Z)
+    -''B'' -- matrix in SL(2,Z)
+
+    OUTPUT:
+
+    -''s'' -- sigma(A,B) \in {1,-1}
+
+    EXAMPLES::
+
+
+    sage: S,T=SL2Z.gens()
+
+
+    """
+    [a1, b1, c1, d1] = _entries(A)
+    [a2, b2, c2, d2] = _entries(B)
+    C = A * B
+    [a3, b3, c3, d3] = _entries(C)
+    sA = kubota_sigma_symbol(c1, d1)
+    sB = kubota_sigma_symbol(c2, d2)
+    sC = kubota_sigma_symbol(c3, d3)
+    res = hilbert_symbol(sA, sB, -1) * hilbert_symbol(-sA * sB, sC, -1)
+    return res
+
+
+def kubota_sigma_symbol(c, d):
+    r"""
+    Compute sigma_A=sigma(c,d) for A = (a b // c d)
+    given by sigma_A = c if c!=0 else = d
+    """
+    if c != 0:
+        return c
+    else:
+        return d
