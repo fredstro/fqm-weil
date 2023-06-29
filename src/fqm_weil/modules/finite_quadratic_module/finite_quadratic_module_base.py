@@ -2368,11 +2368,16 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
                  gens: e1, e1, e3, e3
                  form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 + 1/3*x2^2 + 2/3*x2*x3 + 1/3*x3^2 in ...
         """
-        if cat and cat != self.category():
+        if cat and not cat.is_subcategory(self.category()):
             raise NotImplementedError
         if not isinstance(B, FiniteQuadraticModule_base):
             raise TypeError("B (={0}) must be finte quadratic module.".format(B))
         return FiniteQuadraticModuleHomset(self, B)
+
+    def _convert_map_from_(self, S):
+        if isinstance(S, FiniteQuadraticModule_base):
+            return FiniteQuadraticModuleHomset(self, S)
+        return None
 
     def hom(self, im_gens, codomain=None, check=None, base_map=None, category=None, **kwds):
         r"""
