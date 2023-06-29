@@ -86,11 +86,12 @@ AUTHORS:
 from builtins import range
 from builtins import str
 import logging
+from math import lcm
 
 from sage.all import copy, cached_method, is_even, Sequence, \
     prod, valuation, randrange, xmrange, latex
 from sage.arith.all import is_prime, kronecker, prime_divisors
-from sage.arith.misc import is_prime_power
+from sage.arith.misc import is_prime_power, gcd
 from sage.categories.commutative_additive_groups import CommutativeAdditiveGroups
 from sage.categories.homset import HomsetWithBase
 from sage.categories.morphism import    Morphism
@@ -108,6 +109,7 @@ from sage.modules.torsion_quadratic_module import TorsionQuadraticModule
 from sage.modules.vector_integer_dense import Vector_integer_dense
 from sage.rings.all import ZZ, QQ, Integer, PolynomialRing
 from sage.rings.number_field.number_field import CyclotomicField
+from sage.rings.number_field.number_field_element import NumberFieldElement
 from sage.structure.category_object import normalize_names
 from sage.structure.element import Vector
 from sage.structure.sequence import Sequence_generic
@@ -197,7 +199,25 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
 
         EXAMPLES::
 
-            sage: from fqm_weil.all import FiniteQuadraticModule_base
+            sage: from fqm_weil.modules.finite_quadratic_module.all import \
+            FiniteQuadraticModule_base
+            sage: R = matrix(2,2,[2,1,1,2])
+            sage: G = 1/2 * R^(-1)
+            sage: A.<a,b> = FiniteQuadraticModule_base(R, G); A
+            Finite quadratic module in 2 generators:
+             gens: b, b
+             form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2
+            sage: A.<a> = FiniteQuadraticModule_base(R, G, default_coords='fundamental'); A
+            Finite quadratic module in 1 generator:
+             gen: a
+             form: 1/3*x^2
+            sage: G = 1/3 * R^(-1)
+            sage: FiniteQuadraticModule_base(R, G)
+            Traceback (most recent call last):
+            ...
+            ValueError: ([2 1]
+            [1 2],[ 2/9 -1/9]
+            [-1/9  2/9]): not a compatible pair
 
 
         .. TODO: check if R, G are matrices over ZZ, QQ, admit nonsquare R with rank == size G
@@ -638,7 +658,7 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             x = x.list()
         if check:
             if x != 0 and not isinstance(x, (list, tuple, Vector)):
-                raise ValueError(f"Can not construct finite quadratic module element from {x}.")
+                raise TypeError(f"Can not construct finite quadratic module element from {x}.")
             if isinstance(x, (list, tuple, Vector)):
                 # Check that the length is correct.
                 use_fundamental_coords = kwds.get('coords') == 'fundamental' or \
@@ -903,12 +923,12 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             sage: F(1)
             Traceback (most recent call last):
             ...
-            ValueError: Can not construct finite quadratic module element from 1.
+            TypeError: Can not construct finite quadratic module element from 1.
             sage: x = FiniteQuadraticModule('3').gens()[0]
             sage: F(x)
             Traceback (most recent call last):
             ...
-            NotImplementedError
+            TypeError: unable to convert Finite quadratic module in 2 generators:...
         """
         if isinstance(x, FiniteQuadraticModuleElement):
             if x.parent() is self:
@@ -1388,7 +1408,9 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
         """
         if B == 0:
             return self
-        if not isinstance(B, FiniteQuadraticModule_base):
+        # Type checking does not work properly here.
+        # I.e. not isinstance(B, FiniteQuadraticModule_base) does not work.
+        if not hasattr(B, 'gram') or not hasattr(B, 'relations'):
             msg = f"Addition of Finite Quadratic Module and {B} not defined."
             raise ValueError(msg)
         if B.is_trivial():
@@ -1703,7 +1725,7 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             Extend this function so to include also degenerate modules.
             Maybe wo do not need to check all divisors?
         """
-        if not isinstance(A, FiniteQuadraticModule_base):
+        if not isinstance(A, type(self)):
             return False
         if not self.is_nondegenerate() or not A.is_nondegenerate():
             raise TypeError('The quadratic modules to compare must be non degenerate')
@@ -2133,8 +2155,7 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             sage: F.B(F.gens()[0],1)
             Traceback (most recent call last):
             ...
-            ValueError: Can not construct finite quadratic module element from 1.
-
+            ValueError: Need elements of self not x=e and y=1.
         """
         if x == 0 or y == 0:
             return 0
@@ -2790,7 +2811,7 @@ class FiniteQuadraticModuleHomomorphism_im_gens (Morphism):
             sage: f(1)
             Traceback (most recent call last):
             ...
-            ValueError: Can not construct finite quadratic module element from 1.
+            TypeError: x (=1) must be in Finite quadratic module in 2 generators...
 
         """
         if x not in self.domain():

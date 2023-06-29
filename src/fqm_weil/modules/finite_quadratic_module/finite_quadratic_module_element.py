@@ -207,7 +207,7 @@ class FiniteQuadraticModuleElement(FGP_Element):
     def __hash__(self):
         return super(FiniteQuadraticModuleElement,self).__hash__()
 
-    def _vector_(self):
+    def _vector_(self, R=None):
         r"""
         Return the coordinates of self w.r.t. the fundamental
         generators of self.parent() as a vector.
