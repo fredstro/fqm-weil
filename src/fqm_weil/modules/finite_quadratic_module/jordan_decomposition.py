@@ -6,14 +6,18 @@ import logging
 
 from sage.all import ZZ
 from sage.arith.functions import lcm
-from sage.arith.misc import valuation, kronecker, is_prime, inverse_mod, is_prime_power
+from sage.arith.misc import valuation, kronecker, is_prime, inverse_mod, is_prime_power, gcd
 from sage.functions.other import floor, binomial
 from sage.matrix.constructor import matrix
 from sage.misc.flatten import flatten
 from sage.misc.functional import is_odd, is_even
 from sage.misc.misc_c import prod
 from sage.rings.integer import Integer
+from sage.rings.number_field.number_field import CyclotomicField
 from sage.structure.sage_object import SageObject
+
+CF8 = CyclotomicField(8)
+z8 = CF8.gen()
 
 class JordanComponent(SageObject):
     """
@@ -300,6 +304,115 @@ class JordanComponent(SageObject):
              form: 1/8*x^2
         """
         return self.basis()[0].parent().spawn(self.basis())[0]
+
+    def ambient_finite_quadratic_module(self):
+        """
+        Return the ambient finite quadratic module.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: A.jordan_decomposition()[0].as_finite_quadratic_module()
+            Finite quadratic module in 2 generators:
+             gens: e0, e1
+             form: 1/2*x0*x1
+            sage: A.jordan_decomposition()[1].as_finite_quadratic_module()
+            Finite quadratic module in 1 generator:
+             gen: e
+             form: 1/8*x^2
+        """
+        return self._ambient_module
+
+    def _finite_quadratic_module_hom(self):
+        """
+        Return this component as an ambient finite quadratic module.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2^2.4_1^1')
+            sage: A.jordan_decomposition()[0].as_finite_quadratic_module()
+            Finite quadratic module in 2 generators:
+             gens: e0, e1
+             form: 1/2*x0*x1
+            sage: A.jordan_decomposition()[1].as_finite_quadratic_module()
+            Finite quadratic module in 1 generator:
+             gen: e
+             form: 1/8*x^2
+        """
+        return self.basis()[0].parent().spawn(self.basis())[1]
+
+    def gauss_sum(self, c):
+        """
+        Calculate the Gauss sum G(c, x, D) of one Jordan component.
+        $$G(c, x, D) = (|D||D^c|^{-1/2} \sum_{x\in D} \exp(2\pi i (c Q(x) + B(x, y))).$$
+
+        INPUT:
+            - `c` -- integer
+            - `p0` -- optional prime
+
+        .. NOTE::
+            We apply the formulas in [Str, Sections 3] for each indecomposable Jordan component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2_1')
+            sage: A.jordan_decomposition()[0].gauss_sum(1)
+            zeta8
+            sage: A.Gauss_sum(1, A.gens()[0])
+            -zeta8^3
+            sage: A = FiniteQuadraticModule('3')
+            sage: A.jordan_decomposition()[0].gauss_sum(1)
+            -zeta8^2
+            sage: A.Gauss_sum(1, A.gens()[0])
+            zeta24^2
+            sage: FiniteQuadraticModule('5').jordan_decomposition()[0].gauss_sum(1)
+            -1
+            sage: FiniteQuadraticModule('4_1').jordan_decomposition()[0].gauss_sum(1)
+            zeta8
+            sage: FiniteQuadraticModule('4^2').jordan_decomposition()[0].gauss_sum(1)
+            1
+            sage: FiniteQuadraticModule('4^-2').jordan_decomposition()[0].gauss_sum(1)
+            1
+            sage: FiniteQuadraticModule('2^-2').jordan_decomposition()[0].gauss_sum(1)
+            -1
+            sage: FiniteQuadraticModule('4^2.2_1').jordan_decomposition()[0].gauss_sum(1)
+            zeta8
+            sage: FiniteQuadraticModule('4^2.2_1').jordan_decomposition()[1].gauss_sum(1)
+            1
+            sage: FiniteQuadraticModule('4^-2.2_1').jordan_decomposition()[0].gauss_sum(1)
+            zeta8
+            sage: FiniteQuadraticModule('4^-2.2_1').jordan_decomposition()[1].gauss_sum(1)
+            1
+            sage: JC = FiniteQuadraticModule('4^-2.2_1').jordan_decomposition()[0]
+            sage: JC.as_finite_quadratic_module().Gauss_sum(2, check=True)
+            0
+            sage: JC = FiniteQuadraticModule('4^-2.2_1').jordan_decomposition()[1]
+            sage: JC.as_finite_quadratic_module().Gauss_sum(2, check=True)
+            -1
+
+        """
+        if not self.is_indecomposable():
+            return prod(comp.gauss_sum(c) for comp in self.decompose())
+        qc = gcd(c, self.q)
+        if self.p > 2:
+            arg = self.n - self.n * self.q // qc
+            return self.eps ** self.k * kronecker(c // qc, self.q // qc) * z8 ** arg
+        if self._type_I:
+            vcp = valuation(c, 2)
+            if vcp == self.k:
+                return 0
+            if vcp < self.k:
+                arg = self.t * c // 2 ** vcp
+            else:
+                arg = 0
+            return self.eps ** self.k * kronecker(c // qc, self.q // qc) * z8 ** arg
+        elif self.eps == -1:
+            return kronecker(3, self.q // qc)
+        else:
+            return 1
 
 
 class JordanDecomposition(SageObject):

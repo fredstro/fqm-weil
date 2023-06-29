@@ -116,6 +116,8 @@ from .finite_quadratic_module_element import FiniteQuadraticModuleElement
 
 log = logging.getLogger(__name__)
 
+CF8 = CyclotomicField(8)
+z8 = CF8.gen()
 
 class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
     r"""
@@ -1093,26 +1095,24 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             (zeta8, 1/4*sqrt(1/2))
         """
         s = s % self.level()
-        K = CyclotomicField(8)
         if s == 0:
-            return K(1), K(1)
+            return CF8(1), CF8(1)
         if p is not None and not is_prime(p):
             raise TypeError
         if p and 0 != self.order() % p:
-            return K(1), K(1)
+            return CF8(1), CF8(1)
         _p = p
-        z = K.gen()
         jd = self.jordan_decomposition()
         ci = ci1 = 1
         for c in jd:
             # c[0]: basis, (prime p,  valuation of p-power n, dimension r,
             #                                   determinant d over p [, oddity o])
-            p, n, r, d = c[1][:4]
+            p, n, r, d, *o = c.invariants()
             log.debug(f"c={c}")
             log.debug("p={p}, n={n}, r={r}, d={d}")
             if _p and p != _p:
                 continue
-            o = None if 4 == len(c[1]) else c[1][4]
+            o = o[0] if o else None
             log.debug(f"o={o}")
             k = valuation(s, p)
             s1 = Integer(s/p**k)
@@ -1120,12 +1120,12 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             log.debug(f"h={h}")
             q = p**h
             if p != 2:
-                lci = z**((r*(1-q)) % 8) * d**(h % 2) if h > 0 else 1
+                lci = z8**((r*(1-q)) % 8) * d**(h % 2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
             elif k == n and o is not None:
                 return 0, 0
             else:
-                f = z**o if o else 1 
+                f = z8**o if o else 1
                 lci = f * d**(h % 2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
                 if debug > 0:
@@ -1186,13 +1186,136 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
         else:
             return inv.index(-1) + 4
 
-    def Gauss_sum(self, c, p0=None, debug=0) -> tuple:
+    def Gauss_sum(self, c, x=0, p=None, algorithm='formula', check=False) -> tuple:
         r"""
         If this quadratic module equals $A = (M,Q)$, return
         the Gauss sum of $A$ (or $A(p)$ if $p$ is a prime)
         at $s$, i.e. return the root of unity
         $$\chi_A (c)= 1/\sqrt{|M||M[c]}\sum_{x\in M} \exp(2\pi i c Q(x))).$$
 
+        INPUT:
+
+        - ``c`` -- integer
+        - ``x`` -- element of self
+        - ``p`` -- prime
+        - ``algorithm`` -- string (default: 'formula'; if 'sum' then a "naive" simple sum is used
+                                                        only use this for testing)
+        - ``check`` -- boolean(default: False) check the value by comparing naive algorithm and formula.
+        .. NOTE::
+            We apply the formulas in [Str, Sections 3] for each Jordan component.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('2_1')
+            sage: A.Gauss_sum(1, check=True)
+            zeta8
+            sage: A.Gauss_sum(1, A.gens()[0], check=True)
+            -zeta8^3
+            sage: A = FiniteQuadraticModule('3')
+            sage: A.Gauss_sum(1, check=True)
+            -zeta8^2
+            sage: A.Gauss_sum(1, A.gens()[0], check=True)
+            zeta24^2
+            sage: A = FiniteQuadraticModule('5')
+            sage: A.Gauss_sum(1, check=True)
+            -1
+            sage: FiniteQuadraticModule('4_1').Gauss_sum(1, check=True)
+            zeta8
+            sage: FiniteQuadraticModule('4^2').Gauss_sum(1, check=True)
+            1
+            sage: FiniteQuadraticModule('4^-2').Gauss_sum(1, check=True)
+            1
+            sage: FiniteQuadraticModule('2^-2').Gauss_sum(1, check=True)
+            -1
+            sage: FiniteQuadraticModule('2^-2').Gauss_sum(2, check=True)
+            1
+            sage: A = FiniteQuadraticModule('4^2.2_1')
+            sage: A.Gauss_sum(1, check=True)
+            zeta8
+            sage: A.Gauss_sum(1, A.gens()[0], check=True)
+            zeta8
+            sage: FiniteQuadraticModule('4^-2.2_1').Gauss_sum(1, check=True)
+            zeta8
+            sage: FiniteQuadraticModule('4^-2.2_1').Gauss_sum(2, check=True)
+            0
+
+            sage: FiniteQuadraticModule('4^2').Gauss_sum(1, check=True)
+            1
+            sage: A = FiniteQuadraticModule('8_1')
+            sage: A.Gauss_sum(8, 0, check=True)
+            0
+            sage: A.Gauss_sum(1, A.gens()[0], check=True)
+            zeta16
+            sage: A.Gauss_sum(1, 2*A.gens()[0], check=True)
+            -zeta8^3
+            sage: A.Gauss_sum(4, 2*A.gens()[0], check=True)
+            0
+
+
+        """
+        if algorithm == 'naive':
+            return self._gauss_sum_as_sum(c, x, p)
+        elif algorithm != 'formula':
+            raise ValueError("algorithm must be 'formula' or 'naive'")
+        if check:
+            formula_value = self.Gauss_sum(c, x, p, algorithm='formula', check=False)
+            naive_value = self.Gauss_sum(c, x, p, algorithm='naive', check=False)
+            if formula_value != naive_value:
+                raise ArithmeticError(f"Check failed. {formula_value} != {naive_value}")
+            return formula_value
+        if c == 0:
+            return CF8(1)
+        if p is not None and not is_prime(p):
+            raise ValueError("p must be a prime")
+        if not x:
+            return prod(comp.gauss_sum(c) for comp in self.jordan_decomposition() if p is None
+                        or comp.p == p)
+
+        xc = self.xc(c)
+        if x == xc:
+            return self._gauss_sum__xc(c, p)
+        y = x - xc
+        if y not in self.power_subgroup(c):
+            return CF8(0)
+        if c != 1:
+            y = y / c
+        argument = ZZ(self.level()*(-c*self.Q(y) - self.B(xc, y)))
+        # Reduce common factors
+        d = gcd(argument, self.level())
+        zN = CyclotomicField(self.level()//d).gen()
+        argument = argument // d
+        return self._gauss_sum__xc(c, p)*zN**argument
+
+    def _gauss_sum_as_sum(self, c, x=0, p=None) -> tuple:
+        """
+
+        EXAMPLES:
+
+        """
+        N = lcm(self.level(), 8)
+        CFN = CyclotomicField(N)
+        z = CFN.gens()[0]
+        gauss_sum = sum(z ** (c * (self.Q(y) * N) + self.B(x, y) * N) for y in self
+                        if p is None or y.order() % p == 0)
+        M = self.order()
+        order_of_kernel_mult_a = prod(gcd(c, o) for o in self.gens_orders())
+        result = gauss_sum / CFN(ZZ(M * order_of_kernel_mult_a).sqrt())
+        try:
+            return CF8(result)
+        except (TypeError, ValueError):
+            return CFN(result)
+
+    def _gauss_sum__xc(self, c, p0=None) -> tuple:
+        r"""
+        If this quadratic module equals $A = (M,Q)$, return
+        the Gauss sum of $A$ (or $A(p)$ if $p$ is a prime)
+        at $s$, i.e. return the root of unity
+        $$\chi_A (c)= 1/\sqrt{|M||M[c]}\sum_{x\in M} \exp(2\pi i c Q(x))).$$
+
+        INPUT:
+            - `c` -- integer
+            - `p0` -- optional prime
 
         .. NOTE::
             We apply the formulas in [Str, Sections 3] for each Jordan component.
@@ -1200,70 +1323,36 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
         EXAMPLES::
 
             sage: from fqm_weil.all import FiniteQuadraticModule
-            sage: FiniteQuadraticModule('2_1').char_invariant(1)
-            (zeta8, sqrt(1/2))
-            sage: FiniteQuadraticModule('3').char_invariant(1)
-            (-zeta8^2, sqrt(1/3))
-            sage: FiniteQuadraticModule('5').char_invariant(1)
-            (-1, sqrt(1/5))
-            sage: FiniteQuadraticModule('4_1').char_invariant(1)
-            (zeta8, 1/2)
-            sage: FiniteQuadraticModule('4^2').char_invariant(1)
-            (1, 1/4)
-            sage: FiniteQuadraticModule('4^-2').char_invariant(1)
-            (1, 1/4)
-            sage: FiniteQuadraticModule('4^2.2_1').char_invariant(1)
-            (zeta8, 1/4*sqrt(1/2))
-            sage: FiniteQuadraticModule('4^-2.2_1').char_invariant(1)
-            (zeta8, 1/4*sqrt(1/2))
+            sage: FiniteQuadraticModule('2_1')._gauss_sum__xc(1)
+            zeta8
+            sage: FiniteQuadraticModule('3')._gauss_sum__xc(1)
+            -zeta8^2
+            sage: FiniteQuadraticModule('5')._gauss_sum__xc(1)
+            -1
+            sage: FiniteQuadraticModule('4_1')._gauss_sum__xc(1)
+            zeta8
+            sage: FiniteQuadraticModule('4^2')._gauss_sum__xc(1)
+            1
+            sage: FiniteQuadraticModule('4^-2')._gauss_sum__xc(1)
+            1
+            sage: FiniteQuadraticModule('4^2.2_1')._gauss_sum__xc(1)
+            zeta8
+            sage: FiniteQuadraticModule('4^-2.2_1')._gauss_sum__xc(1)
+            zeta8
         """
         if c == 0:
-            return 1
+            return QQ(1), QQ(1)
         if p0 is not None and not is_prime(p0):
-            raise TypeError
+            raise ValueError("p0 must be a prime")
         if p0 and self.order() % p0 != 0:
-            return 1
-        z8 = CyclotomicField(8).gen()
-        result = 1
+            return QQ(1), QQ(1)
+        q = 2**valuation(c, 2)
+        result = QQ(1)
         for comp in self.jordan_decomposition():
-            p, k, r, eps = comp[1][:4]
-            log.debug(f"c={c}")
-            log.debug("p={p}, n={n}, r={r}, d={d}")
-            if p0 and p != p0:
+            if comp.q == q:
                 continue
-            q = p ** k
-            vpc = valuation(c, p)
-            qc = gcd(c, q)
-            if p > 2:
-                result = kronecker(-a, qc)
-
-
-                o = None if 4 == len(c[1]) else c[1][4]
-            log.debug(f"o={o}")
-            k = valuation(s, p)
-            s1 = Integer(s/p**k)
-            h = max(n-k, 0)
-            log.debug(f"h={h}")
-            q = p**h
-            if p != 2:
-                lci = z**((r*(1-q)) % 8) * d**(h % 2) if h > 0 else 1
-                lci1 = q**(-r) if h > 0 else 1
-            elif k == n and o is not None:
-                return 0, 0
-            else:
-                f = z**o if o else 1
-                lci = f * d**(h % 2) if h > 0 else 1
-                lci1 = q**(-r) if h > 0 else 1
-                if debug > 0:
-                    print(f, d, lci)
-            if 2 == p:
-                lci = lci**s1
-            log.debug(f"lci={lci}")
-            log.debug(f"lci1={lci1}")
-            ci *= lci * kronecker(s1, lci1**-1)
-            ci1 *= lci1
-        return ci, QQ(ci1).sqrt()
-
+            result *= comp.gauss_sum(c)
+        return result
 
     ###################################
     # Deriving quadratic modules
