@@ -97,13 +97,15 @@ class JordanComponent(SageObject):
         self.eps = eps
         self.t = t[0] if t else None
         self._basis = basis
+        self._ambient_module = self._basis[0].parent()
         self._invariants = invariants
         self._type_II = False
         self._type_I = False
         if p == 2 and self.t is not None:
             self._type_I = True
             if check and n == 1 and any(b.norm() * 2 ** (k + 1) % 2 ** (k + 1) not in [1, 3] for b in basis):
-                raise ValueError("Incorrect basis for indecomposable type_I 2-adic component.")
+                raise ValueError(f"Incorrect basis for indecomposable type_I 2-adic component.: "
+                                 f"{self.invariants()}, {self.basis()}")
         elif p == 2:
             self._type_II = True
             if check and len(basis) % 2 == 1:
@@ -216,6 +218,50 @@ class JordanComponent(SageObject):
         """
         return self._basis
 
+    def is_type_I(self):
+        """
+        Return True if self is type I (also called odd 2-adic), else False.
+
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1)).is_type_I()
+            False
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: JordanComponent(A.gens()[0:2], (2, 1, 2, 1)).is_type_I()
+            False
+            sage: JordanComponent(A.gens()[2:], (2, 2, 1, 1, 1)).is_type_I()
+            True
+            sage: A = FiniteQuadraticModule('2^2')
+            sage: JordanComponent(A.gens()[0:2], (2, 1, 2, 1)).is_type_I()
+            False
+            """
+        return self._type_I
+
+    def is_type_II(self):
+        """
+        Return True if self is type II (also called even 2-adic), else False.
+
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
+            sage: A = FiniteQuadraticModule('3^2')
+            sage: JordanComponent(A.gens(), (3, 1, 2, 1)).is_type_II()
+            False
+            sage: A = FiniteQuadraticModule('2^2.4_1')
+            sage: JordanComponent(A.gens()[0:2], (2, 1, 2, 1)).is_type_II()
+            True
+            sage: JordanComponent(A.gens()[2:], (2, 2, 1, 1, 1)).is_type_II()
+            False
+            sage: A = FiniteQuadraticModule('2^2')
+            sage: JordanComponent(A.gens()[0:2], (2, 1, 2, 1)).is_type_II()
+            True
+            """
+        return self._type_II
+
     def is_indecomposable(self):
         """
         Is the Jordan component indecomposable.
@@ -270,6 +316,8 @@ class JordanComponent(SageObject):
             t_new = self.t - 1
             if is_odd(self.k) and self.eps == -1:
                 t_new = (self.t + 4) % 8
+            if t_new == 0:
+                t_new = None
             return [JordanComponent((b0,), (self.p, self.k, 1, 1, 1))] + \
                 JordanComponent(self.basis()[1:], (self.p, self.k, self.n - 1, self.eps,
                                                    t_new)).decompose()
@@ -1603,4 +1651,4 @@ class JordanDecomposition(SageObject):
             [2_1, 2_1, 2_1, 2_1, 2_1]
 
         """
-        return flatten([jc.decompose() for jc in self])
+        return flatten([jc.decompose() for jc in self if p0 is None or jc.p == p0])
