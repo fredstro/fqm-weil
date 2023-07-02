@@ -6,3 +6,4 @@ fqm_weil.egg-info/*
 src/fqm_weil/__pycache__/
 src/fqm_weil/version.py
 __pycache__
+examples/.ipynb_checkpoints
