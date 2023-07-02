@@ -23,7 +23,7 @@ from sage.structure.formal_sum import FormalSum
 from fqm_weil.modules.finite_quadratic_module.finite_quadratic_module_element import \
     FiniteQuadraticModuleElement
 from fqm_weil.modules.utils import factor_matrix_in_sl2z
-from fqm_weil.modules.weil_module import _entries\
+from fqm_weil.modules.weil_module.utils import _entries, hilbert_symbol_infinity
 
 
 class WeilModuleElement(FormalSum):
@@ -49,13 +49,9 @@ class WeilModuleElement(FormalSum):
            e0 + 2*e1
 
         """
+        from .weil_module import WeilModule
         self._coordinates = []
         self._verbose = verbose
-        # if parent == None:
-        #     parent = WeilModule(d.parent())
-        if not hasattr(parent, '_is_WeilModule'):
-            raise TypeError(
-                "Call as WeilModuleElement(W,d) where W=WeilModule. Got W={0}".format(parent))
         if isinstance(d, tuple):
             d = list(d)
         if not isinstance(d, list):
@@ -69,6 +65,12 @@ class WeilModuleElement(FormalSum):
         if not isinstance(d[0], tuple):
             self._coordinates = d
             d = [(n, list(parent.finite_quadratic_module())[i]) for i, n in enumerate(d)]
+        if not parent:
+            parent = WeilModule(d[0][1].parent())
+        if not isinstance(parent, WeilModule):
+            raise TypeError(
+                "Call as WeilModuleElement(W,d) where W=WeilModule. Got W={0}".format(parent))
+
         for t in d:
             if not isinstance(t, tuple) or len(t) != 2 or t[1] not in parent._QM:
                 raise TypeError("argument must be a list of tuples of the form (n,x) "
@@ -93,13 +95,40 @@ class WeilModuleElement(FormalSum):
         #    self._minus_element.append(self._QM.list().index(-self._QM.list()[i]))
         self._level = self._QM.level()
         # Pre-compute invariants
-        # print "self=",type(self)
         self._inv = parent._inv
-        # self._B={}  ## stores a
-        # TODO: some checking here and/or study sage.structure.formal_sum.py
 
     def _cache_key(self):
         return ('WeilModuleElement', tuple(self._data), self._parent)
+
+    def as_finite_quadratic_module_element(self):
+        """
+        If the coefficients are all integers then this formal sum
+        can be interpreted as a "real" sum.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: W = WeilModule(F)
+            sage: w = W.basis()[1]
+            sage: w
+            e0
+            sage: w.as_finite_quadratic_module_element()
+            e0
+            sage: (-w).as_finite_quadratic_module_element()
+            2*e0
+            sage: W(F.0 + F.1).as_finite_quadratic_module_element()
+            e0 + e1
+            sage: (-W(F.0 + F.1)).as_finite_quadratic_module_element() in F
+            True
+        """
+        res = 0
+        try:
+            for i, x in self._data:
+                res += ZZ(i)*x
+        except TypeError:
+            raise TypeError(f"Cannot interpret {self} as finite quadratic module element")
+        return res
 
     ###################################
     ## Operations
@@ -130,11 +159,14 @@ class WeilModuleElement(FormalSum):
 
         EXAMPLES::
 
-        sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule, WeilModuleElement
-        sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
-        sage: W = WeilModule(F)
-        sage: w = WeilModuleElement([1,1])
-                """
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule, WeilModuleElement
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: W = WeilModule(F)
+            sage: w = WeilModuleElement([1,1], parent=W); w
+            0 + e1
+            sage: w.parent() == W
+            True
+        """
         return self._parent
 
     def coordinates(self):
@@ -165,7 +197,7 @@ class WeilModuleElement(FormalSum):
 
     @cached_method
     def _minus_element(self, ii):
-        return self._W._neg_index(ii)
+        return self._W.neg_index(ii)
 
     def action(self, A):
         r"""
@@ -403,7 +435,7 @@ class WeilModuleElement(FormalSum):
         for ii in range(0, self._n):
             if filter != None and filter[ii, ii] != 1:
                 continue
-            jj = self._W._neg_index(ii)
+            jj = self._W.neg_index(ii)
             r[ii, jj] = 1
         r = r * self._QM.sigma_invariant() ** 2
         return [r, 1]
@@ -649,12 +681,12 @@ class WeilModuleElement(FormalSum):
         """
         Return xi(A).
         """
-        if met == 'old':
-            return prod(x for x in self._get_xis(*args).values())
-        else:
-            return prod(x for x in self._get_xis_new(*args).values())
+        # if met == 'old':
+        #     return prod(x for x in self._get_xis(*args).values())
+        # else:
+        return prod(x for x in self._get_xis(*args).values())
 
-    def _get_xis_new(self, *args, pset=None):
+    def _get_xis(self, *args, pset=None):
         r"""
         compute the p-adic factors: \xi_0, \xi_p, p | |D|
 
@@ -684,7 +716,7 @@ class WeilModuleElement(FormalSum):
         if self._verbose > 0:
             print("pset={0}".format(pset))
             print("JD={0}".format(JD))
-        sign = self._inv['signature']
+        sign = self._inv['signature'][-1]
         oddity = self._inv['total oddity']
         z8 = self._z8
         if c == 0 and d == 1:
@@ -695,153 +727,35 @@ class WeilModuleElement(FormalSum):
         xis[-1] = z8 ** (-2 * sign)
         if sign % 2 == 0:
             xis[0] = 1
-            if c % 2 == 1:
-                xis[2] = 1
-            else:
-                xis[2] = z8 ** (oddity * (a + 1))
         else:
             xis[0] = kronecker(-a, c) * hilbert_symbol_infinity(-a, c)
-            if c % 2 == 1:
-                xis[2] = 1
-            else:
+            xis[-1] *= hilbert_symbol_infinity(-1, c)
+        if c % 2 != 0:
+            xis[2] = 1
+        else:
+            xis[2] = z8 ** (oddity * (a + 1))
+            if sign % 2 == 1:
                 c2 = odd_part(c)
-                xis[2] = z8 ** (c2 * oddity * (a + 1))
+                xis[2] *= z8 ** ( (c2 - 1) * (a + 1))
+        # print("xis=",xis)
         for comp in JD:
-            p, k, n, eps = comp[1][:4]
-            # print("p,k,n,eps=",p,k,n,eps)
-            q = p ** k
-            constituent = JD.constituent(q)[0]
+            q = comp.q
+            p = comp.p
+            n = comp.n
+            k = comp.k
+            # q = p ** k
+            constituent = JD.constituent(q).as_finite_quadratic_module()
             xi_comp = 1
             if c % p != 0:
                 xi_comp *= constituent.char_invariant(c, p)[0]
-                # print("xi_comp=",xi_comp)
             else:
                 xi_comp *= kronecker(-a, q) ** n
-                if len(comp[1]) == 4 or k != valuation(c, 2):
+                if not comp.is_type_I() or k != valuation(c, 2):
                     # if the component is not type I or xc does not belong to this component.
                     # print("inv=",constituent.char_invariant(-a*c, p))
                     xi_comp *= constituent.char_invariant(-a * c, p)[0]
                     # print(f"xis[{p}]=",xi_comp)
             xis[p] *= xi_comp  # **n
-        return xis
-
-    def _get_xis(self, *args, pset=None):
-        r"""
-        compute the p-adic factors: \xi_0, \xi_p, p | |D|
-
-        if pset = p we only return the p-factor of xi.
-        """
-        JD = self._QM.jordan_decomposition()
-        absD = self._n
-        a, b, c, d = _entries(*args)
-        if self._verbose > 0:
-            print("pset={0}".format(pset))
-            print("JD={0}".format(JD))
-        sign = self._inv['signature']
-        z8 = self._z8
-        if c == 0:
-            if d == 1:
-                return {0: 1}
-            return {0: z8 ** (2 * sign)}
-        xis = {}
-        if c < 0:
-            xis[-1] = (-1) ** sign * z8 ** (2 * sign)
-            c = -c
-            a = -a
-            b = -b
-            d = -d
-        else:
-            xis[-1] = 1
-
-        oddity = self._inv['total oddity']
-        oddities = self._inv['oddity']
-        pexcesses = self._inv['p-excess']
-        gammafactor = 1
-        for comp in JD:
-            p = comp.p
-            xis[p] = 1
-            if self._verbose > 0:
-                print("p={0}".format(p))
-        if a * d != 0:
-            if is_even(sign):
-                argl = -2 * sign
-                xis[0] = z8 ** argl
-            else:
-                dc = kronecker(-a, c)
-                argl = -2 * sign
-                if (is_even(c)):
-                    argl = argl + (a + 1) * (odd_part(c) + 1)
-                xis[0] = z8 ** argl * dc
-        else:
-            argl = -sign
-            xis[0] = z8 ** argl
-            if pset == 0:
-                return {0: xis[0]}
-            elif pset is not None:
-                return {0: 1}
-            return xis
-        if pset == -1 or pset == 0:
-            return {0: xis[0]}
-        if (list(xis.keys()).count(2) > 0):
-            if (is_odd(c)):
-                argl = (c * oddity) % 8
-            else:
-                argl = (-(1 + a) * oddity) % 8
-            xis[2] = z8 ** argl
-            if self._verbose > 0:
-                print("oddity(Q)={0}".format(oddity))
-                if (is_odd(c)):
-                    print("c*oddity={0}".format(argl))
-                else:
-                    print("-(a+1)oddity={0}".format(argl))
-            if pset == 2:
-                return {2: xis[2]}
-        for comp in JD:
-            p = comp.p
-            q = comp.q
-            t = comp.t
-            ep = comp.eps
-            r = comp.n
-            qc = gcd(q, c)
-            qqc = Integer(q / qc)
-            ccq = Integer(c / qc)
-            nq = valuation(qqc, p)
-            gammaf = 1
-            dc = 1
-            # if(c % q == 0): # This only contributes a trivial factor
-            #    continue
-            if p == 2:
-                if is_even(c):
-                    if c % q != 0:
-                        odt = self._get_oddity(p, nq, r, ep, t)
-                        argl = -a * ccq * odt
-                        gammaf = z8 ** argl
-                        if self._verbose > 0:
-                            print("odt({q})_{t}^{e},{r}={o}".format(t=t, o=odt, e=ep, r=r,
-                                                                    q=p ** nq))
-                            print("argl={0}".format(argl))
-                        dc = kronecker(-a * ccq, qqc ** r)
-                        if self._verbose > 0:
-                            print("kron(-ac_q/q_c^r)={0}".format(dc))
-                    dc = dc * kronecker(-a, q ** r)
-                    xis[2] = xis[2] * gammaf * dc
-                    if self._verbose > 0:
-                        print("xis2=", xis[2])
-                else:
-                    dc = kronecker(c, q ** r)
-                    xis[2] = xis[2] * dc
-            else:
-                if (c % q != 0):
-                    exc = self._get_pexcess(p, nq, r, ep)
-                    argl = -exc
-                    gammaf = z8 ** argl
-                    dc = kronecker(ccq, qqc ** r)
-                    if self._verbose > 0:
-                        print("gamma_{p}={g}".format(p=p, g=gammaf))
-                dc = dc * kronecker(-d, qc ** r)
-                xis[p] = xis[p] * gammaf * dc
-            if pset == p:
-                return {p: xis[p]}
         return xis
 
     @cached_method
@@ -1135,51 +1049,3 @@ def sigma_cocycle(A, B):
         return hilbert_symbol(-c2, d1, -1)
     else:
         return hilbert_symbol(d1, d2, -1)
-
-
-def hilbert_symbol_infinity(a, b):
-    if (a < 0 and b < 0):  # or (a == 0 and b < 0) or (a < 0 and b == 0):
-        return -1
-    return 1
-
-
-def kubota_cocycle(A, B):
-    r"""
-    Computing the cocycle sigma(A,B) using the Theorem and Hilbert symbols
-
-    INPUT:
-
-    -''A'' -- matrix in SL(2,Z)
-    -''B'' -- matrix in SL(2,Z)
-
-    OUTPUT:
-
-    -''s'' -- sigma(A,B) \in {1,-1}
-
-    EXAMPLES::
-
-
-    sage: S,T=SL2Z.gens()
-
-
-    """
-    [a1, b1, c1, d1] = _entries(A)
-    [a2, b2, c2, d2] = _entries(B)
-    C = A * B
-    [a3, b3, c3, d3] = _entries(C)
-    sA = kubota_sigma_symbol(c1, d1)
-    sB = kubota_sigma_symbol(c2, d2)
-    sC = kubota_sigma_symbol(c3, d3)
-    res = hilbert_symbol(sA, sB, -1) * hilbert_symbol(-sA * sB, sC, -1)
-    return res
-
-
-def kubota_sigma_symbol(c, d):
-    r"""
-    Compute sigma_A=sigma(c,d) for A = (a b // c d)
-    given by sigma_A = c if c!=0 else = d
-    """
-    if c != 0:
-        return c
-    else:
-        return d

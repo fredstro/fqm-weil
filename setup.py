@@ -1,51 +1,15 @@
 import os
+import shutil
+import subprocess
 import setuptools
+from sage_setup.extensions import create_extension
 from setuptools.extension import Extension
+import Cython.Compiler.Main
 from Cython.Build import cythonize
-# Check if we are currently in a SageMath environment.
-SAGE_LOCAL = os.getenv('SAGE_LOCAL')
-if not SAGE_LOCAL:
-    raise ValueError("This package can only be installed inside SageMath (http://www.sagemath.org)")
-# Find correct value for SAGE_LIB which is needed to compile the Cython extensions.
-SAGE_LIB = os.getenv('SAGE_LIB')
-if not SAGE_LIB:
-    try:
-        from sage.env import SAGE_LIB
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError("To install this package you need to either specify the "
-                                  "environment variable 'SAGE_LIB' or call pip with "
-                                  "'--no-build-isolation'")
-if not os.path.isdir(SAGE_LIB):
-    raise ValueError(f"The library path {SAGE_LIB} is not a directory.")
-# SAGE_INC = SAGE_LOCAL + "/include"
-# Extension modules using Cython
-extra_compile_args = ['-Wno-unused-function',
-                      '-Wno-implicit-function-declaration',
-                      '-Wno-unused-variable',
-                      '-Wno-deprecated-declarations',
-                      '-Wno-deprecated-register']
-ext_modules = [
-    Extension(
-        'fqm_weil.modules.weil_invariants',
-        sources=['src/fqm_weil/modules/weil_invariants.pyx'],
-        include_dirs=['src/fqm_weil/modules', '/usr/local/lib'],
-        extra_compile_args=extra_compile_args
-    ),
-    Extension(
-        'fqm_weil.modules.weil_module_alg',
-        sources=['src/fqm_weil/modules/weil_module_alg.pyx'],
-        include_dirs=['src/fqm_weil/modules'],
-        extra_compile_args=extra_compile_args
-    ),
-    Extension(
-        'fqm_weil.modules.utils',
-        sources=['src/fqm_weil/modules/utils.pyx'],
-        include_dirs=['src/fqm_weil/modules'],
-        extra_compile_args=extra_compile_args
-    )]
+from sage.env import SAGE_LIB
+
 debug = False
 gdb_debug = True
-import Cython
 if os.environ.get('SAGE_DEBUG', None) == 'yes':
     print('Enabling Cython debugging support')
     debug = True
@@ -53,21 +17,58 @@ if os.environ.get('SAGE_DEBUG', None) == 'yes':
     Cython.Compiler.Main.default_options['output_dir'] = 'build'
     gdb_debug = True
 
+LIBRARY_DIRS = []
+INCLUDE_DIRS = []
+if shutil.which('brew') is not None:
+    proc = subprocess.Popen("/opt/homebrew/bin/brew --prefix", shell=True,
+                            stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, close_fds=True)
+    HOMEBREW_PREFIX = proc.stdout.readline().decode('utf-8').strip()
+    HOMEBREW_LIB = HOMEBREW_PREFIX + '/lib'
+    LIBRARY_DIRS.append(HOMEBREW_LIB)
+    HOMEBREW_INC = HOMEBREW_PREFIX + '/include'
+    INCLUDE_DIRS.append(HOMEBREW_INC)
+
+INCLUDE_DIRS += ['src/fqm_weil/modules']
+extra_compile_args = ['-Wno-unused-function',
+                      '-Wno-implicit-function-declaration',
+                      '-Wno-unused-variable',
+                      '-Wno-deprecated-declarations',
+                      '-Wno-deprecated-register',
+                      '-Wno-unreachable-code',
+                      '-Wno-unreachable-code-fallthrough']
+
+ext_modules = [
+    Extension(module, sources, include_dirs=INCLUDE_DIRS,
+              extra_compile_args=extra_compile_args,
+              library_dirs=LIBRARY_DIRS)
+    for (module, sources) in [
+        ('fqm_weil.modules.weil_module.weil_invariants',
+         ['src/fqm_weil/modules/weil_module/weil_invariants.pyx']),
+        ('fqm_weil.modules.weil_module.weil_module_alg',
+         ['src/fqm_weil/modules/weil_module/weil_module_alg.pyx']),
+        ('fqm_weil.modules.utils', ['src/fqm_weil/modules/utils.pyx'])
+        ]
+]
+
+extensions = cythonize(
+    ext_modules,
+    include_path=['src', 'src/fqm_weil/modules'] + LIBRARY_DIRS + [SAGE_LIB],
+    compiler_directives={
+        'embedsignature': True,
+        'language_level': '3',
+    },
+    gdb_debug=gdb_debug,
+)
 
 setuptools.setup(
-    ext_modules=cythonize(
-        ext_modules,
-        include_path=['src', 'src/fqm_weil/modules', SAGE_LIB],
-        compiler_directives={
-            'embedsignature': True,
-            'language_level': '3',
-        },
-        gdb_debug=gdb_debug,
-    ),
+    ext_modules=extensions,
+    create_extension=create_extension,
     packages=['fqm_weil',
+              'fqm_weil.modular',
               'fqm_weil.modules',
-              # 'fqm_weil.modules.finite_quadratic_module',
-              # 'fqm_weil.modules.weil_module',
+              'fqm_weil.modules.finite_quadratic_module',
+              'fqm_weil.modules.weil_module',
               ],
     package_data={
         "": ["*.pxd"]

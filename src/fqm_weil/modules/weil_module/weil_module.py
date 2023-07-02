@@ -41,13 +41,14 @@ from builtins import range
 
 from sage.all import Integer, RR, CC, QQ, ZZ, cached_method, CyclotomicField, lcm, \
     SL2Z, floor, ceil, hilbert_symbol, xgcd, latex
+from sage.arith.misc import prime_divisors
 from sage.matrix.matrix0 import Matrix
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
 from sage.structure.formal_sum import FormalSums
 from .weil_module_alg import *
-from .finite_quadratic_module.finite_quadratic_module_base import FiniteQuadraticModule_base
-from .finite_quadratic_module.finite_quadratic_module_element import FiniteQuadraticModuleElement
-from .finite_quadratic_module.finite_quadratic_module_ambient import FiniteQuadraticModuleRandom
+from ..finite_quadratic_module.finite_quadratic_module_base import FiniteQuadraticModule_base
+from ..finite_quadratic_module.finite_quadratic_module_element import FiniteQuadraticModuleElement
+from ..finite_quadratic_module.finite_quadratic_module_ambient import FiniteQuadraticModuleRandom
 from .weil_module_element import WeilModuleElement
 
 
@@ -61,6 +62,8 @@ class WeilModule(FormalSums):
     if $l$ denotes the level of $A$.
     """
 
+    Element = WeilModuleElement
+
     def __init__(self, A, **kwds):
         r"""
         Initialize the Weil representation associated to the
@@ -69,9 +72,17 @@ class WeilModule(FormalSums):
         INPUT
             A -- an instance of class  FiniteQuadraticModule_base.
 
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: W = WeilModule(F)
+            sage: TestSuite(W).run()
+
         """
         if not isinstance(A, FiniteQuadraticModule_base):
-            raise TypeError("Argument must be a nondegenerate Finite Quadratic module. ")
+            raise TypeError(f"Argument must be a nondegenerate Finite Quadratic module. Got {A} of type {type(A)}")
         if not A.is_nondegenerate():
             raise TypeError(" Argument is a degenerate Finite Quadratic module.")
         # Recall that we have elements in CyclotomicField (A.level())
@@ -93,11 +104,12 @@ class WeilModule(FormalSums):
             self._gen_orders.append(Integer(g.order()))
         # self._minus_element=[]
         # self._minus_element=self._get_negative_indices()
+        self._neg_indices = {}
 
         self._level = self._QM.level()
         # Pre-compute invariants
         self._inv = self._get_invariants()
-        self._zero = WeilModuleElement([(0, self._QM(0))], parent=self)
+        self._zero = self.element_class([(0, self._QM(0))], parent=self)
         self._even_submodule = None
         self._odd_submodule = None
         self._even_submodule_ix = None
@@ -105,59 +117,190 @@ class WeilModule(FormalSums):
         self._basis = []
         self._dim_param = {}
         self._dim_param_numeric = {}
-        # self._L = list()
-        # e=WeilModuleElement(self,self._QM.list()[0])
-        # for ii in range(0,self._n):
-        #    self._L.append(WeilModuleElement(self,e))
+
+    def finite_quadratic_module(self):
+        r"""
+        The associated finite quadratic module.
+
+        EXAMPLES::
+
+           sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+           sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+           sage: WeilModule(F).finite_quadratic_module() == F
+            True
+        """
+        return self._QM
+
+    def rank(self):
+        r"""
+        Rank of self.
+
+       EXAMPLES::
+
+           sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+           sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+           sage: WeilModule(F).rank()
+           9
+
+       """
+        return self._n
 
     def basis(self):
         r"""
         Gives a basis of self as a vector space of dimension |D|
         It is the ordered basis used in self.matrix(A).
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: WeilModule(F).basis()
+            [0, e0, 2*e0, e1, e0 + e1, 2*e0 + e1, 2*e1, e0 + 2*e1, 2*e0 + 2*e1]
+
         """
-        if self._basis == []:
+        if not self._basis:
             for i in range(self._QM.order()):
                 x = self._QM(self._elt(i), coords='fundamental')
-                self._basis.append(WeilModuleElement([(1, x)], parent=self))
+                self._basis.append(self([(1, x)]))
         return self._basis
 
-    def _get_negative_indices(self):
-        r"""
-        Return a list of all indices of negatives of elements (using a method implemented in cython).
-        """
-        return cython_neg_indices(self._n, self._gen_orders)
+    def signature(self):
+        return self._inv['signature']
 
-    def _get_negative_indices_python(self):
+    def invariant(self, s):
+        if not self._inv:
+            self._get_invariants()
+        if s in self._inv:
+            return self._inv[s]
+        raise ValueError("Invariant {0} is not defined! Got:{1}".format(s, list(self._inv.keys())))
+
+    def oddity(self):
+        return self._inv['signature'][2]
+
+    def level(self):
         r"""
-        Return a list of all indices of negatives of elements (using a method implemented in python).
+        Level of the associated finite quadratic module.
+
+        EXAMPLES::
+
+           sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+           sage: WeilModule(FiniteQuadraticModule('5')).level()
+           5
+           sage: WeilModule(FiniteQuadraticModule('2_1')).level()
+           4
+           sage: WeilModule(FiniteQuadraticModule('2^2')).level()
+           2
+           sage: WeilModule(FiniteQuadraticModule('2^-2')).level()
+           2
+           sage: WeilModule(FiniteQuadraticModule('4_1^1.5')).level()
+           40
         """
-        l = []
-        for ii in range(self._n):
-            l.append(self._neg_index_python(ii))
-        return l
+        return self.finite_quadratic_module().level()
+
 
     # @cached_method
-    def _el_index(self, c):
+    def _el_index(self, c, check=False):
         r"""
-        Return the index of the element c in self.
+        Return the index of the element c in the basis of self.
+
+        INPUT:
+
+        - ``c`` --  tuple of *fundamental* coordinates of an element of the finite quadratic module
+        - ``check`` -- bool, optional, default=False, whether to check the result.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: W = WeilModule(F)
+            sage: W._el_index([1,1])
+            4
+            sage: W._el_index([2,1])
+            5
+            sage: W._el_index([2])
+            Traceback (most recent call last):
+            ...
+            ValueError: Need element of list of the same length as orders=[3, 3]! Got c=[2]
+
+        Check a module where the fundamental and canonical coordinates are different
+
+            sage: W = WeilModule(FiniteQuadraticModule('2^2.4_1^1.3^2'))
+            sage: W._el_index([1,0,0], check=True)
+            1
+            sage: W._el_index([0,1,0], check=True)
+            2
+            sage: W._el_index( [1], check=True)
+            Traceback (most recent call last):
+            ...
+            ValueError: Need element of list of the same length as orders=[2, 6, 12]! Got c=[1]
+
         """
-        if not isinstance(c, (list, Vector_integer_dense)):
+        if not isinstance(c, (tuple, list, Vector_integer_dense)):
             raise ValueError("Need element of list form! Got c={0} of type={1}".format(c, type(c)))
         if not len(c) == len(self._gen_orders):
             raise ValueError(
                 "Need element of list of the same length as orders={0}! Got c={1}".format(
                     self._gen_orders, c))
-        return cython_el_index(c, self._gen_orders)
+        index = cython_el_index(c, self._gen_orders)
+        if check:
+            assert self.basis()[index].as_finite_quadratic_module_element().\
+                       list(coords='fundamental') == list(c)
+        return index
 
-    @cached_method
-    def _neg_index(self, ii):
+    def _get_negative_indices(self, check=False):
         r"""
-        Return the index of -1 times the ii-th element of self.
+        Return a list of all indices of negatives of elements (using a method implemented in cython).
+
+        INPUT:
+
+        ```check``: bool, optional, default=False, whether to check for negative indices.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: W = WeilModule(F)
+            sage: W._get_negative_indices(check=True)
+            [0, 2, 1, 6, 8, 7, 3, 5, 4]
+
         """
-        return cython_neg_index(ii, self._gen_orders)
+        if len(self._neg_indices) == self._n:
+            indices = [self._neg_indices[i] for i in range(self._n)]
+        else:
+            indices = cython_neg_indices(self._n, self._gen_orders)
+            self._neg_indices = dict(zip(range(self._n), indices))
+        if check:
+            assert set(indices) == set(range(self._n))
+            assert all(
+                self.basis()[indices[i]].as_finite_quadratic_module_element() ==
+                             (-b).as_finite_quadratic_module_element()
+                for i, b in enumerate(self.basis()))
+        return indices
 
     def neg_index(self, ii):
-        return self._neg_index(ii)
+        r"""
+        Return the index of -1 times the ii-th element of self.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import FiniteQuadraticModule, WeilModule
+            sage: F = FiniteQuadraticModule([3,3],[0,1/3,2/3])
+            sage: WeilModule(F).neg_index(1)
+            2
+            sage: WeilModule(F).neg_index(2)
+            1
+
+
+        NOTE: We are using an explict cache here
+        """
+        if ii not in self._neg_indices:
+            index = cython_neg_index(ii, self._gen_orders)
+            self._neg_indices[ii] = index
+            if index != ii:
+                self._neg_indices[index] = ii
+        else:
+            index = self._neg_indices[ii]
+        return index
 
     @cached_method
     def _elt(self, ii):
@@ -176,13 +319,13 @@ class WeilModule(FormalSums):
         r"""
         Return an element of self.
         """
-        return WeilModuleElement(self._QM.an_element(), parent=self)
+        return self(self._QM.an_element())
 
     def random_element(self):
         r"""
         Return a random element of self.
         """
-        return WeilModuleElement(self._QM.random_element(), parent=self)
+        return self(self._QM.random_element())
 
     ###################################
     ## Introduce myself ...
@@ -204,32 +347,31 @@ class WeilModule(FormalSums):
     ## Coercion
     ###################################
 
-    def __call__(self, x):
+    def _element_constructor_(self, x, check=True, **kwds):
         r"""
         Coerce object into an appopriate child object
         of self if possible.
 
-        We ccoerce
-        - an element of $A$ into an elemnt of $K[A]$.
+        We coerce
+        - an element of $A$ into an element of $K[A]$.
 
         EXAMPLES
         """
-        # print "x=",x
-        # print "par=",x.parent()
+        if isinstance(x, self.element_class):
+            if check and x.parent() != self:
+                raise ValueError(f"Can not construct an element of {self} from {x}")
+            # Only return x if the parent *is* self to avoid coercion problems.
+            if x.parent() is self:
+                return x
         if isinstance(x, FiniteQuadraticModuleElement):
             if x.parent() is self._QM:
-                return WeilModuleElement([(1, x)], parent=self)
+                return self.element_class([(1, x)], parent=self)
 
-        # otherwise we assume that x is a list of pairs (a,k),
-        # where a is in self.__QM and k is in self.__K
-        # print "x=",x
-        return WeilModuleElement(x, parent=self)
-
-        raise TypeError("argument must be an element of {0}".format(self._QM))
+        return self.element_class(x, **kwds, parent=self)
 
     ###################################
     ## Basic Methods ...
-    ###################################
+    ####################################
 
     def matrix(self, A, filter=None, by_factoring=False, **kwds):
         r"""
@@ -264,7 +406,7 @@ class WeilModule(FormalSums):
         # We only need the diagonal elements of rho(A)
         n = len(list(self._QM))
         # Need a WeilModuleElement to compute the matrix
-        e = WeilModuleElement([(1, self._QM.gens()[0])], self, verbose=self._verbose)
+        e = self([(1, self._QM.gens()[0])])
         # print "e=",e
         if (by_factoring == False):
             if filter != None:
@@ -326,14 +468,14 @@ class WeilModule(FormalSums):
 
     def _get_invariants(self):
         r"""
-        Compute total invariants of a Jordan decomposition
+        Compute all invariants of a Jordan decomposition
 
         OUTPUT: dictionary res with entries:
             res['total p-excess']= sum of all p-excesses
             res['total oddity']  = sum of all oddities
             res['oddity']        = list of oddities of all components
             res['p-excess']=     = list of p-excesses of all components
-            res['signature']     = signature := (odt-pexc_tot) % 8
+            res['signature']     = dictionary p => p-signature mod 8, -1 => total signature
             res['type']          = dictionary q=>'I' or 'II' telling whether the 2-adic component q is odd or even
 
         EXAMPLES::
@@ -345,7 +487,7 @@ class WeilModule(FormalSums):
             {'oddity': {},
              'p-excess': {3: 0},
              'sigma': {0: 1, 3: 1},
-             'signature': 0,
+             'signature': {-1: 0, 3: 0},
              'total oddity': 0,
              'total p-excess': 0,
              'type': {}}
@@ -355,10 +497,10 @@ class WeilModule(FormalSums):
             sage: F = FiniteQuadraticModule(R,G)
             sage: W = WeilModule(F)
             sage: W._get_invariants()
-            {'oddity': {},
-             'p-excess': {5: 4},
+             {'oddity': {},
+             'p-excess': {5: -4},
              'sigma': {0: -1, 5: -1},
-             'signature': 4,
+             'signature': {-1: 4, 5: 4},
              'total oddity': 0,
              'total p-excess': 4,
              'type': {}}
@@ -367,9 +509,9 @@ class WeilModule(FormalSums):
             sage: W = WeilModule(A)
             sage: W._get_invariants()
             {'oddity': {2: 0, 4: 1},
-             'p-excess': {3: 4},
+             'p-excess': {3: -4},
              'sigma': {0: zeta8^3, 2: -zeta8^3, 3: -1},
-             'signature': 5,
+             'signature': {-1: 5, 2: 1, 3: 4},
              'total oddity': 1,
              'total p-excess': 4,
              'type': {2: 'II', 4: 'I'}}
@@ -379,11 +521,13 @@ class WeilModule(FormalSums):
         res = dict()
         types = dict()
         sigma_inv = dict()
+        signatures = {p: 0 for p in prime_divisors(self._QM.order())}
         sigma_inv[0] = self._QM.sigma_invariant()
         for comp in self._QM.jordan_decomposition():
             q = comp.q
+            signatures[comp.p] += comp.signature() % 8
             if comp.p > 2:
-                pexc[q] = comp.signature()
+                pexc[q] = - comp.signature()
             else:
                 odts[q] = comp.signature()
             if comp.is_type_I():
@@ -397,33 +541,11 @@ class WeilModule(FormalSums):
         res['total oddity'] = odt % 8
         res['oddity'] = odts
         res['p-excess'] = pexc
-        res['signature'] = (odt - pexc_tot) % 8
+        signatures[-1] = sum(signatures.values())
+        res['signature'] = signatures
         res['type'] = types
         res['sigma'] = sigma_inv
         return res
-
-    def signature(self):
-        return self._inv['signature']
-
-    def invariant(self, s):
-        if s in self._inv:
-            return self._inv[s]
-        raise ValueError("Invariant {0} is not defined! Got:{1}".format(s, list(self._inv.keys())))
-
-    def finite_quadratic_module(self):
-        return self._QM
-
-    def rank(self):
-        return self._n
-
-    def oddity(self):
-        return self._inv['oddity']
-
-    def level(self):
-        return self._level
-
-    def pexcess(self, p):
-        return self._inv['p-excess'].get(p, 0)
 
     def odd_submodule(self, indices=0):
         if indices == 0:
@@ -782,238 +904,5 @@ class WeilModule(FormalSums):
 
 
 #### End of WeilModule Element
-def _entries(*args):
-    r"""
-    Returns the entries of A
-    where A is one of:
-    1) Element of SL2Z
-    2) 2x2 integer matrix with determinant 1
-    3) list [a,b,c,d] with ad-bc=1
-
-    EXAMPLES::
-
-        sage: from fqm_weil.modules.weil_module import _entries
-        sage: _entries(1, 2, 3, 4)
-        (1, 2, 3, 4)
-        sage: _entries(matrix([[1, 2], [3, 4]]))
-        (1, 2, 3, 4)
-        sage: _entries(SL2Z.gens()[0])
-        (0, -1, 1, 0)
-
-    """
-    if len(args) == 4:
-        return args
-    if isinstance(args[0], (tuple, list)) and len(args[0]) == 4:
-        return args[0]
-
-    if isinstance(args[0], ArithmeticSubgroupElement):
-        return tuple(args[0])
-    if isinstance(args[0], Matrix):
-        return args[0][0, 0], args[0][0, 1], args[0][1, 0], args[0][1, 1]
-    raise ValueError(f"Can not create SL(2,Z) entries from {args}")
 
 
-def sigma_cocycle(A, B):
-    r"""
-    Computing the cocycle sigma(A,B) using the Theorem and Hilbert symbols
-    
-    INPUT:
-    
-    -''A'' -- matrix in SL(2,Z)
-    -''B'' -- matrix in SL(2,Z)
-        
-    OUTPUT:
-    
-    -''s'' -- sigma(A,B) \in {1,-1}
-    
-    EXAMPLES::
-    
-        
-    sage: S,T=SL2Z.gens()     
-    
-    
-    """
-    [a1, b1, c1, d1] = _entries(A)
-    [a2, b2, c2, d2] = _entries(B)
-    if c2 * c1 != 0:
-        C = A * B
-        [a3, b3, c3, d3] = _entries(C)
-        if c3 != 0:
-            # print "here",c3*c1,c3*c2
-            return hilbert_symbol(c3 * c1, c3 * c2, -1)
-        else:
-            return hilbert_symbol(c2, d3, -1)
-    elif c1 != 0:
-        return hilbert_symbol(-c1, d2, -1)
-    elif c2 != 0:
-        return hilbert_symbol(-c2, d1, -1)
-    else:
-        return hilbert_symbol(d1, d2, -1)
-
-
-def hilbert_symbol_infinity(a, b):
-    if (a < 0 and b < 0):  # or (a == 0 and b < 0) or (a < 0 and b == 0):
-        return -1
-    return 1
-
-
-def kubota_cocycle(A, B):
-    r"""
-    Computing the cocycle sigma(A,B) using the Theorem and Hilbert symbols
-    
-    INPUT:
-    
-    -''A'' -- matrix in SL(2,Z)
-    -''B'' -- matrix in SL(2,Z)
-        
-    OUTPUT:
-    
-    -''s'' -- sigma(A,B) \in {1,-1}
-    
-    EXAMPLES::
-    
-        
-    sage: S,T=SL2Z.gens()     
-    
-    
-    """
-    [a1, b1, c1, d1] = _entries(A)
-    [a2, b2, c2, d2] = _entries(B)
-    C = A * B
-    [a3, b3, c3, d3] = _entries(C)
-    sA = kubota_sigma_symbol(c1, d1)
-    sB = kubota_sigma_symbol(c2, d2)
-    sC = kubota_sigma_symbol(c3, d3)
-    res = hilbert_symbol(sA, sB, -1) * hilbert_symbol(-sA * sB, sC, -1)
-    return res
-
-
-def kubota_sigma_symbol(c, d):
-    r"""
-    Compute sigma_A=sigma(c,d) for A = (a b // c d)
-    given by sigma_A = c if c!=0 else = d
-    """
-    if c != 0:
-        return c
-    else:
-        return d
-
-
-def test_dimensions_1(fqbound=100, nbound=10, cbound=10, size_bd=50, kmin=2, kmax=10, verbose=0,
-                      test=1, numeric=False):
-    r"""
-    Run tests on a set of random quadratic modules
-    test >= 0: make sure only exactly one of dim(r) and dim(r*) arenon-zero
-    Test >= 1: check that dimensions are integers 
-
-    
-    """
-    for i in range(nbound):
-        l = size_bd + 1
-        while l > size_bd:
-            FQ = FiniteQuadraticModuleRandom(fqbound, nbound, verbose - 1)
-            l = len(list(FQ))
-            W = WeilModule(FQ)
-            g = FQ.jordan_decomposition().genus_symbol()
-            s = W.signature()
-            if verbose > 0:
-                print("Check genus={0} sign={1}".format(g, s))
-            for twok in range(2 * kmin + 1, 2 * kmax + 1):
-                k = QQ(twok) / QQ(2)
-                if verbose > 1:
-                    print("k={0}".format(k))
-                ## There is a built-in integrality test already
-                try:
-                    d1, ep1 = W.dimension_cusp_forms(k, sgn=1, verbose=verbose - 2,
-                                                     numeric=numeric)
-                    d2, ep2 = W.dimension_cusp_forms(k, sgn=-1, verbose=verbose - 2,
-                                                     numeric=numeric)
-                except ArithmeticError:
-                    print("Fail 2")
-                    print("k={0}".format(k))
-                    print("genus:{0}".format(g))
-                    print("FQ={0}".format(FQ))
-                    print("dimS(rho,{0})={1}".format(k, CC(d1)))
-                    print("dimS(rho*,{0})={1}".format(k, CC(d2)))
-                    return False, W, d1, d2
-    return True
-
-
-### testing functions
-def test_formula(fqbound=100, nbound=10, cbound=10, size_bd=50, kmin=2, kmax=10, verbose=0, test=1,
-                 numeric=False, gamma0_test=0):
-    r"""
-    Run tests on a set of random quadratic modules
-    test >= 0: make sure only exactly one of dim(r) and dim(r*) arenon-zero
-    Test >= 1: check that dimensions are integers 
-
-    
-    """
-    for i in range(nbound):
-        l = size_bd + 1
-        while l > size_bd:
-            FQ = FiniteQuadraticModuleRandom(fqbound, nbound, verbose - 1)
-            if list(FQ) == [FQ(0)]:
-                continue  ## This is just the 0 module
-            l = len(list(FQ))
-            W = WeilModule(FQ)
-            g = FQ.jordan_decomposition().genus_symbol()
-            s = W.signature()
-        if verbose > 0:
-            print("signature={0}".format(s))
-            print("genus={0}".format(g))
-            print("is_nondeg={0}".format(FQ.is_nondegenerate()))
-            print("gram={0}".format(FQ.gram()))
-        w = W.an_element()
-        i = 0
-        j = 0
-        while (i < cbound):
-            A = SL2Z.random_element()
-            if gamma0_test == 1 and A[1, 0] % W.level() != 0:
-                j += 1
-                if j > 2000:
-                    raise ArithmeticError("Error in random elements of SL2Z!")
-                continue
-            j = 0
-            i = i + 1
-            t = compare_formula_for_one_matrix(W, A, verbose)
-            if not t:
-                if verbose > 0:
-                    print("A={0}".format(A))
-                    return W, A
-
-                    # raise ArithmeticError,"Got different matrix! r1={0} and r2={1}".format(r1,r2)
-    return True
-
-
-def compare_formula_for_one_matrix(W, A, verbose=0):
-    r"""
-    Compare the action of A on W using the formula and factoring into generators.
-    """
-    r1 = W.matrix(A, by_factoring=False)
-    r2 = W.matrix(A, by_factoring=True)
-    f1 = CC(r1[1])
-    f2 = CC(r2[1])
-    for i in range(r1[0].nrows()):
-        for j in range(r1[0].ncols()):
-            t1 = f1 * r1[0][i, j].complex_embedding()
-            t2 = f2 * r2[0][i, j].complex_embedding()
-            if abs(t1 - t2) > 1e-10:
-                if verbose > 0:
-                    print("i,j={0},{1}".format(i, j))
-                    print("t1={0}".format(t1))
-                    print("t2={0}".format(t2))
-                return False
-    return True
-
-
-def compare_formula_for_one_module(W, nmats=10, verbose=0):
-    r"""
-    Compare the action of A on W using the formula and factoring into generators.
-    """
-    for i in range(nmats):
-        A = SL2Z.random_element()
-        t = compare_formula_for_one_matrix(W, A, verbose)
-        if not t:
-            return False
-    return True
