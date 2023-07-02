@@ -52,7 +52,7 @@ docker:
 	docker build --build-arg GIT_BRANCH=$(GIT_BRANCH) --build-arg REMOTE_SRC=$(REMOTE_SRC) -t fqm_weil-$(TAG) .
 
 docker-rebuild:
-	docker build --build-arg GIT_BRANCH=$(GIT_BRANCH) --build-arg REMOTE_SRC=$(REMOTE_SRC) --no-cache -t fqm_weil=$(TAG) .
+	docker build --build-arg GIT_BRANCH=$(GIT_BRANCH) --build-arg REMOTE_SRC=$(REMOTE_SRC) --no-cache -t fqm_weil-$(TAG) .
 
 docker-test: docker
 	docker run -it --init fqm_weil-$(GIT_BRANCH) test
@@ -71,9 +71,10 @@ docker-sage: docker
 
 
 clean:
-	rm -rf src/*/*/*.c
-	rm -rf src/*/*/*.so
-	rm -rf src/*/*/*.cpp
+	rm -rf src/fqm_weil/modules/*.c
+	rm -rf src/fqm_weil/modules/*.so
+	rm -rf src/fqm_weil/modules/weil_module/*.c
+	rm -rf src/fqm_weil/modules/weil_module/*.so
 	rm -rf *.egg-info
 	rm -rf build
 	rm -rf dist
