@@ -1,4 +1,10 @@
 from .finite_quadratic_module.finite_quadratic_module_ambient import FiniteQuadraticModule, \
-    FiniteQuadraticModule, FiniteQuadraticModule_base
+    FiniteQuadraticModule, FiniteQuadraticModule_base, FiniteQuadraticModule_ambient, _A, _B, _C
+from .finite_quadratic_module.finite_quadratic_module_base import FiniteQuadraticModuleHomset
+from .finite_quadratic_module.finite_quadratic_module_subgroup import FiniteQuadraticModule_subgroup
 from .finite_quadratic_module.jordan_decomposition import JordanDecomposition, JordanComponent
-from .weil_module import WeilModule, sigma_cocycle, kubota_cocycle
+from .finite_quadratic_module.test_finite_quadratic_module import FiniteQuadraticModuleRandom
+from .weil_module.weil_module import WeilModule
+from .weil_module.utils import sigma_cocycle, kubota_cocycle
+from .weil_module.weil_module_element import WeilModuleElement
+from fqm_weil.modules.weil_module.weil_invariants import cython_invariants

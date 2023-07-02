@@ -802,23 +802,23 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             [2/5]
             sage: A = FiniteQuadraticModule('11^-7.2^-2',check=True)
             sage: A.gram(coords='canonical')
-            [1/11    0    0    0    0    0    0    0    0]
-            [   0 1/11    0    0    0    0    0    0    0]
-            [   0    0 1/11    0    0    0    0    0    0]
-            [   0    0    0 1/11    0    0    0    0    0]
-            [   0    0    0    0 1/11    0    0    0    0]
-            [   0    0    0    0    0 1/11    0    0    0]
+            [2/11    0    0    0    0    0    0    0    0]
+            [   0 2/11    0    0    0    0    0    0    0]
+            [   0    0 2/11    0    0    0    0    0    0]
+            [   0    0    0 2/11    0    0    0    0    0]
+            [   0    0    0    0 2/11    0    0    0    0]
+            [   0    0    0    0    0 2/11    0    0    0]
             [   0    0    0    0    0    0 1/11    0    0]
             [   0    0    0    0    0    0    0  1/2  1/4]
             [   0    0    0    0    0    0    0  1/4  1/2]
             sage: A.gram(coords='fundamental')
-            [ 1/11     0     0     0     0     0     0]
-            [    0  1/11     0     0     0     0     0]
-            [    0     0  1/11     0     0     0     0]
-            [    0     0     0  1/11     0     0     0]
+            [ 2/11     0     0     0     0     0     0]
+            [    0  2/11     0     0     0     0     0]
+            [    0     0  2/11     0     0     0     0]
+            [    0     0     0  2/11     0     0     0]
             [    0     0     0     0  1/11     0     0]
-            [    0     0     0     0     0 13/22   1/4]
-            [    0     0     0     0     0   1/4 13/22]
+            [    0     0     0     0     0 15/22   1/4]
+            [    0     0     0     0     0   1/4 15/22]
 
         """
         if coords == 'fundamental':
@@ -842,23 +842,23 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             [4/5]
             sage: A = FiniteQuadraticModule('11^-7.2^-2',check=True)
             sage: A.gram_bilinear(coords='canonical')
-            [2/11    0    0    0    0    0    0    0    0]
-            [   0 2/11    0    0    0    0    0    0    0]
-            [   0    0 2/11    0    0    0    0    0    0]
-            [   0    0    0 2/11    0    0    0    0    0]
-            [   0    0    0    0 2/11    0    0    0    0]
-            [   0    0    0    0    0 2/11    0    0    0]
+            [4/11    0    0    0    0    0    0    0    0]
+            [   0 4/11    0    0    0    0    0    0    0]
+            [   0    0 4/11    0    0    0    0    0    0]
+            [   0    0    0 4/11    0    0    0    0    0]
+            [   0    0    0    0 4/11    0    0    0    0]
+            [   0    0    0    0    0 4/11    0    0    0]
             [   0    0    0    0    0    0 2/11    0    0]
             [   0    0    0    0    0    0    0    1  1/2]
             [   0    0    0    0    0    0    0  1/2    1]
             sage: A.gram_bilinear(coords='fundamental')
-            [ 2/11     0     0     0     0     0     0]
-            [    0  2/11     0     0     0     0     0]
-            [    0     0  2/11     0     0     0     0]
-            [    0     0     0  2/11     0     0     0]
+            [ 4/11     0     0     0     0     0     0]
+            [    0  4/11     0     0     0     0     0]
+            [    0     0  4/11     0     0     0     0]
+            [    0     0     0  4/11     0     0     0]
             [    0     0     0     0  2/11     0     0]
-            [    0     0     0     0     0 13/11   1/2]
-            [    0     0     0     0     0   1/2 13/11]
+            [    0     0     0     0     0 15/11   1/2]
+            [    0     0     0     0     0   1/2 15/11]
         """
         return 2*self.gram(coords)
 
@@ -1604,15 +1604,15 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             sage: D = FiniteQuadraticModule('4^-2.5^2'); D
             Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
-             form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 1/5*x2^2 + 1/5*x3^2
+             form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 2/5*x2^2 + 2/5*x3^2
             sage: D = FiniteQuadraticModule('4^-2.5^2', default_coords='canonical'); D
             Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
-             form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 1/5*x2^2 + 1/5*x3^2
+             form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 2/5*x2^2 + 2/5*x3^2
             sage: E = D^2; E
             Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
-             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 2/5*x2^2 + 2/5*x3^2
+             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 4/5*x2^2 + 4/5*x3^2
             sage: E.is_nondegenerate ()
             False
 
@@ -1658,11 +1658,11 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             sage: D = FiniteQuadraticModule('4^-2.5^2'); D
             Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
-             form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 1/5*x2^2 + 1/5*x3^2
+             form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 2/5*x2^2 + 2/5*x3^2
             sage: E = D^2; E
-             Finite quadratic module in 4 generators:
+            Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
-             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 2/5*x2^2 + 2/5*x3^2
+             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 4/5*x2^2 + 4/5*x3^2
             sage: E.is_nondegenerate()
             False
             sage: E.kernel()
@@ -1801,8 +1801,8 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             Gram matrix of the quadratic form with values in Q/4Z:
             [1 0 0 0]
             [0 1 0 0]
+            [0 0 0 1]
             [0 0 1 0]
-            [0 0 0 3]
 
         .. TODO:: See what is the correct way to deal with errors in the value module.
                   For instance '3^1' yields a TQM with values in ZZ/6ZZ instead of ZZ/3ZZ.
@@ -1881,23 +1881,20 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
             Group of isometries of
             Finite quadratic module over Integer Ring with invariants (3, 3, 3)
             Gram matrix of the quadratic form with values in Q/3Z:
-            [1 0 0]
-            [0 1 0]
+            [2 0 0]
+            [0 2 0]
             [0 0 1]
-            generated by 4 elements
+            generated by 3 elements
             sage: T.gens()
-            ([0 0 1]
-             [2 0 0]
-             [0 2 0],
-             [2 0 0]
-             [0 2 0]
-             [0 0 1],
-             [2 0 0]
-             [0 2 0]
-             [0 0 2],
-             [2 0 0]
-             [0 0 2]
-             [0 2 0])
+            ([2 2 2]
+             [1 1 2]
+             [2 1 0],
+             [2 2 2]
+             [2 2 1]
+             [2 1 0],
+             [2 2 2]
+             [2 2 1]
+             [1 2 0])
 
         ..TODO: Implement an efficient algorithm for this (Nice topic for a master thesis!)
         """
@@ -2390,7 +2387,7 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
                  form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 + 1/3*x2^2 + 2/3*x2*x3 + 1/3*x3^2 in ...
         """
         if cat and not cat.is_subcategory(self.category()):
-            raise NotImplementedError
+            raise TypeError(f"Conversion from category: {cat} is not implemented")
         if not isinstance(B, FiniteQuadraticModule_base):
             raise TypeError("B (={0}) must be finte quadratic module.".format(B))
         return FiniteQuadraticModuleHomset(self, B)
@@ -2442,10 +2439,10 @@ class FiniteQuadraticModule_base(FGP_Module_class, AbelianGroup_class):
              gens: e0, e1, e2
              form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 1/4*x2^2 --> Finite quadratic module in 3 generators:
              gens: e0, e1, e2
-             form: 3/4*x0^2 + 3/4*x1^2 + 3/4*x2^2
-             e0 |--> e0
-             e1 |--> e1
-             e2 |--> 0
+             form: 1/4*x0^2 + 1/2*x1^2 + 1/2*x1*x2 + 1/2*x2^2
+            e0 |--> e0
+            e1 |--> e1
+            e2 |--> 0
         """
         v = Sequence(im_gens)
         B = v.universe()
@@ -2858,9 +2855,9 @@ class FiniteQuadraticModuleHomset(HomsetWithBase):
             sage: H = FiniteQuadraticModuleHomset(M,N); H
             Set of Morphisms from Finite quadratic module in 3 generators:
              gens: e0, e1, e2
-             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 1/4*x2^2 to Finite quadratic module in 3 ...
+             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 1/4*x2^2 to Finite quadratic module in 3 generators:
              gens: e0, e1, e2
-             form: 3/4*x0^2 + 3/4*x1^2 + 3/4*x2^2 in Category of modules over Integer Ring
+             form: 1/4*x0^2 + 1/2*x1^2 + 1/2*x1*x2 + 1/2*x2^2 in Category of modules over Integer Ring
             sage: TestSuite(H).run()
         """
         if not all([isinstance(A, FiniteQuadraticModule_base),

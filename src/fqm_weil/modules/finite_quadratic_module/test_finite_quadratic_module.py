@@ -117,20 +117,20 @@ def test_fqm_from_signature(num_tests=10, num_comp=4, prime_bd=5, pow_bd=3, verb
     # Functions for testing
 
 
-def naive_Gauss_sum(FQ, a):
+def naive_Gauss_sum(FQ, a, y=0):
     r"""
     If this quadratic module equals $A = (M,Q)$, return
-    the characteristic function of $A$ at $s$, i.e. return
-    $$\chi_A (s)= |M|^{-1}\sum_{x\in M} \exp(2\pi i s Q(x)))$$
+    the Gauss sum of the of $A$ at $a$, i.e. return
+    $$\chi_A (a)= sqrt(|M|/gcd(|M|,a))^{-1}\sum_{x\in M} \exp(2\pi i [a Q(x) + B(x,y)]))$$
     computed naively by summing.
     NOTE: This is slow and should only be used for testing purposes.
     """
-    N = FQ.level()
-    z = CyclotomicField(N).gens()[0]
-    res = 0
-    for x in list(FQ):
-        res += z ** (a * (FQ.Q(x) * N))
-    return res, ZZ(len(list(FQ))).sqrt()
+    N = lcm(FQ.level(), 8)
+    KN = CyclotomicField(N)
+    z = KN.gens()[0]
+    gauss_sum = sum(z ** (a * (FQ.Q(x) * N) + FQ.B(x, y)) for x in FQ)
+    M = FQ.order()
+    return CyclotomicField(8)(gauss_sum / KN(ZZ(M * gcd(a, M)).sqrt()))
 
 
 def orbitlist_test(str=None):

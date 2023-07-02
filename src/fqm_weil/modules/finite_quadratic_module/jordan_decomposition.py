@@ -1,12 +1,17 @@
 r"""
 Jordan decompositions of finite quadratic modules.
 
+Jordan components can be created from genus symbols and be decomposed into indecomposable components.
+
 """
 import logging
+import re
 
 from sage.all import ZZ
 from sage.arith.functions import lcm
-from sage.arith.misc import valuation, kronecker, is_prime, inverse_mod, is_prime_power, gcd
+from sage.arith.misc import valuation, kronecker, is_prime, inverse_mod, is_prime_power, gcd, \
+    odd_part
+from sage.functions.generalized import sign
 from sage.functions.other import floor, binomial
 from sage.matrix.constructor import matrix
 from sage.misc.flatten import flatten
@@ -15,9 +20,13 @@ from sage.misc.misc_c import prod
 from sage.rings.integer import Integer
 from sage.rings.number_field.number_field import CyclotomicField
 from sage.structure.sage_object import SageObject
+import logging
+
+log = logging.getLogger(__name__)
 
 CF8 = CyclotomicField(8)
 z8 = CF8.gen()
+
 
 class JordanComponent(SageObject):
     """
@@ -55,18 +64,25 @@ class JordanComponent(SageObject):
             Traceback (most recent call last):
             ...
             ValueError: Invalid basis: '(e2, e3)' need order 2
-
+            sage: JordanComponent('2_4^2')
+            Traceback (most recent call last):
+            ...
+            ValueError: Incorrect invariants: (2, 1, 2, 1, 4)
 
             TODO: Handle trivial jordan components.
+
+            TODO: Be able to add jordan components and make sure that genus symbols are unique. 
     """
 
-    def __init__(self, basis, invariants, check=True):
+    def __init__(self, basis=None, invariants=None, check=True):
         """
         Initialize a Jordan component.
 
+        Note: We allow for 'dummy' Jordan components only given by invariants
+
         INPUT:
 
-        - `basis` -- tuple of generators
+        - `basis` -- tuple of generators (default None)
         - `invariants` -- tuple of invariants (p, k, n, eps, t) (t is optional)
         - `check` -- boolean (default: True)
 
@@ -76,19 +92,30 @@ class JordanComponent(SageObject):
             sage: A = FiniteQuadraticModule('3^2')
             sage: JordanComponent(A.gens(), (3, 1, 2, 1))
             3^2
+            sage: JordanComponent('2_2^2')
+            2_2^2
+            sage: JordanComponent('2_2^-2')
+            2_2^-2
 
         """
         super(JordanComponent, self).__init__()
+        if isinstance(basis, str):
+            invariants = basis
+            basis = ()
+        if basis is None:
+            basis = ()
+        if isinstance(invariants, str):
+            invariants = JordanComponent.genus_symbol_to_invariants(invariants)
         if not isinstance(invariants, tuple) or not isinstance(basis, tuple):
             raise ValueError("Invariants and basis must be tuples")
-        p, k, n, eps, *t = invariants
         logging.debug(f"{invariants}")
         logging.debug(basis)
-        if not is_prime(p) or (p > 2 and t != []) or len(t) > 1:
+        p, k, n, eps, *t = invariants
+        if not is_prime(p) or (p > 2 and t and t[0]) or len(t) > 1:
             raise ValueError(f"Invalid invariant data: {invariants}")
-        if len(basis) != n:
+        if basis and len(basis) != n:
             raise ValueError(f"Invalid basis: '{basis}' or rank '{n}'")
-        if any(b.order() != p**k for b in basis):
+        if basis and any(b.order() != p**k for b in basis):
             raise ValueError(f"Invalid basis: '{basis}' need order {p**k}")
         self.p = p
         self.q = p**k
@@ -96,29 +123,46 @@ class JordanComponent(SageObject):
         self.n = n
         self.eps = eps
         self.t = t[0] if t else None
-        self._basis = basis
-        self._ambient_module = self._basis[0].parent()
+        if self.t in ZZ:
+            self.t = self.t % 8
+        basis = list(basis)
+        # Sort the basis so that any 'type_I' components are first.
+        if basis:
+            basis.sort(key=lambda b: b.norm(), reverse=True)
+        self._basis = tuple(basis)
+        self._ambient_module = self._basis[0].parent() if basis else None
         self._invariants = invariants
         self._type_II = False
         self._type_I = False
         if p == 2 and self.t is not None:
             self._type_I = True
-            if check and n == 1 and any(b.norm() * 2 ** (k + 1) % 2 ** (k + 1) not in [1, 3] for b in basis):
-                raise ValueError(f"Incorrect basis for indecomposable type_I 2-adic component.: "
-                                 f"{self.invariants()}, {self.basis()}")
+            if check and n == 1:
+                if basis and (self._basis[0].norm() * 2 * self.q) % (2 * self.q) != self.t:
+                    raise ValueError(f"Incorrect basis for rank 1 type_I 2-adic component.: "
+                                     f"{self.invariants()}, {self._basis}")
+                if kronecker(self.t, 2) != eps:
+                    raise ValueError(f"Incorrect invariants: {self.invariants()}")
+            elif check and n == 2:
+                if is_odd(self.t) or (eps == 1 and self.t not in [0, 2, 6]) or \
+                        (eps == -1 and self.t not in [2, 4, 6]):
+                    raise ValueError(f"Incorrect invariants: {self.invariants()}")
+            elif check and self.t % 2 != self.n % 2:
+                    raise ValueError(f"Incorrect invariants: {self.invariants()}")
+            elif self.q == 2 and self.n ==2 and self.eps == -1 and self.t in [2]:
+                raise NotImplementedError(f"Current implementation does not support symbol '2_2^-2'")
         elif p == 2:
             self._type_II = True
-            if check and len(basis) % 2 == 1:
+            if check and basis and len(self._basis) % 2 == 1:
                 raise ValueError("Incorrect basis for type_II 2-adic component.")
-            if check and n == 2 and self.eps == -1:  # type 'B'
-                if any(b.norm() * (2 ** k) != 1 for b in basis):
+            if check and basis and n == 2 and self.eps == -1:  # type 'B'
+                if any(b.norm() * (2 ** k) != 1 for b in self._basis):
                     raise ValueError("Incorrect basis for type_II 2-adic component.")
-                if any(basis[i].dot(basis[i+1]) * 2 ** k != 1 for i in range(0, len(basis), 2)):
+                if any(self._basis[i].dot(basis[i+1]) * 2 ** k != 1 for i in range(0, self.n, 2)):
                     raise ValueError("Incorrect basis for type_II 2-adic component.")
-            if check and n == 2 and self.eps == 1:
-                if any(b.norm() != 0 for b in basis):
+            if check and basis and n == 2 and self.eps == 1:
+                if any(b.norm() != 0 for b in self._basis):
                     raise ValueError("Incorrect basis for type_II 2-adic component.")
-                if any(basis[i].dot(basis[i+1]) * 2 ** k != 1 for i in range(0, len(basis), 2)):
+                if any(self._basis[i].dot(self._basis[i+1]) * 2 ** k != 1 for i in range(0, self.n, 2)):
                     raise ValueError("Incorrect basis for type_II 2-adic component.")
         if n == 1:
             self._indecomposable = True
@@ -126,6 +170,91 @@ class JordanComponent(SageObject):
             self._indecomposable = True
         else:
             self._indecomposable = False
+
+    @staticmethod
+    def genus_symbol_to_invariants(genus_symbol):
+        r"""
+        Takes a single genus symbol for a component and return the invariants.
+
+        INPUT:
+
+        - ``genus_symbol`` -- string of the form ``q_t^\pm n`` or ``q^\pm n``
+
+        OUTPUT:
+
+        - ``invariants`` -- tuple of invariants (p, k, n, eps, t)
+
+        NOTE: The checks here are only syntactic.
+            Whether a jordan component with these invariants exists or not is not checked.
+            I.e. '2_1^-1' is valid input here.
+
+        EXAMPLES::
+
+            sage: from fqm_weil.all import JordanComponent
+            sage: JordanComponent.genus_symbol_to_invariants('2_1^-1')
+            (2, 1, 1, -1, 1)
+            sage: JordanComponent.genus_symbol_to_invariants('2_1^+1')
+            (2, 1, 1, 1, 1)
+            sage: JordanComponent.genus_symbol_to_invariants('2_1')
+            (2, 1, 1, 1, 1)
+            sage: JordanComponent.genus_symbol_to_invariants('2^1_1')
+            (2, 1, 1, 1, 1)
+            sage: JordanComponent.genus_symbol_to_invariants('4_1^1')
+            (2, 2, 1, 1, 1)
+            sage: JordanComponent.genus_symbol_to_invariants('4_2^-4')
+            (2, 2, 4, -1, 2)
+            sage: JordanComponent.genus_symbol_to_invariants('4^2')
+            (2, 2, 2, 1, None)
+            sage: JordanComponent.genus_symbol_to_invariants('4^-2')
+            (2, 2, 2, -1, None)
+            sage: JordanComponent.genus_symbol_to_invariants('4^2')
+            (2, 2, 2, 1, None)
+            sage: JordanComponent.genus_symbol_to_invariants('4')
+            (2, 2, 1, 1, None)
+            sage: JordanComponent.genus_symbol_to_invariants('25^2')
+            (5, 2, 2, 1, None)
+
+            TESTS::
+
+            sage: JordanComponent.genus_symbol_to_invariants('2_1^^1')
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid genus symbol for one jordan component: '2_1^^1'
+            sage: JordanComponent.genus_symbol_to_invariants('2_1.4')
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid genus symbol for one jordan component: '2_1.4'
+            sage: JordanComponent.genus_symbol_to_invariants('12')
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid genus symbol for one jordan component: '12'
+            sage: JordanComponent.genus_symbol_to_invariants('2_-1')
+            Traceback (most recent call last):
+            ...
+            ValueError: Invalid genus symbol for one jordan component: '2_-1'
+
+        """
+        type_i_pattern1 = re.compile(r"(?P<q>[0-9]+)_(?P<t>[0-9]+)\^?(?P<n>-?\+?[0-9]+)?")
+        type_i_pattern2 = re.compile(r"(?P<q>[0-9]+)\^?(?P<n>-?\+?[0-9]+)?_(?P<t>[0-9]+)")
+        general_pattern = re.compile(r"(?P<q>[0-9]+)\^?(?P<n>-?\+?[0-9]+)?")
+        invalid_symbol = f"Invalid genus symbol for one jordan component: '{genus_symbol}'"
+        if '.' in genus_symbol or genus_symbol.count("^") > 1 or genus_symbol.count("_") > 1:
+            raise ValueError(invalid_symbol)
+        if '_' in genus_symbol:
+            # Check for symbol of the type q_t^n with n positive or negative
+            match = type_i_pattern1.match(genus_symbol) or type_i_pattern2.match(genus_symbol)
+        else:
+            match = general_pattern.match(genus_symbol)
+        if not match:
+            raise ValueError(invalid_symbol)
+        q = ZZ(match.groupdict().get('q'))
+        t = ZZ(match.groupdict().get('t', 0)) or None
+        n = ZZ(match.groupdict().get('n') or 1)
+        eps, n = sign(n), abs(n)
+        if not is_prime_power(q):
+            raise ValueError(invalid_symbol)
+        p, k = q.factor()[0]
+        return p, k, n, eps, t
 
     def __repr__(self):
         """
@@ -298,43 +427,94 @@ class JordanComponent(SageObject):
             [3, 3]
             sage: from fqm_weil.all import JordanComponent, FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('2_1^3')
-            sage: JordanComponent(A.gens(), (2, 1, 3, -1, 5)).decompose()
-            [2_1, 2_1, 2_5^-1]
+            sage: JordanComponent(A.gens(), (2, 1, 3, 1, 1)).decompose()
+            [2_1, 2^2]
             sage: A = FiniteQuadraticModule('2_1^-5')
-            sage: JordanComponent(A.gens(), (2, 1, 5, 1, 5)).decompose()
-            [2_1, 2_1, 2_1, 2_1, 2_1]
+            sage: JordanComponent(A.gens(), (2, 1, 5, -1, 1)).decompose()
+            [2_1, 2^-2, 2^2]
+            sage: FiniteQuadraticModule('2_1.2^2').jordan_decomposition()[0].decompose()
+            [2_1, 2^2]
+            sage: FiniteQuadraticModule('2^2.2_1').jordan_decomposition()[0].decompose()
+            [2_1, 2^2]
+            sage: JordanComponent('2_3^-3').decompose()
+            [2_3^-1, 2^2]
+            sage: JordanComponent('2_2^2').decompose()
+            [2_1, 2_1]
 
+        Note that the component 2_7 does not work in the current implementation.
+        Calling _A(2,7) would just give _A(2,3) since the quadratic form is given mod 1.
+
+            sage: JordanComponent('2_2^-2').decompose()
+            [2_3^-1, 2_7]
         """
         if self.is_indecomposable():
             return [self]
         if self.p > 2:
-            b0 = self.basis()[0]
-            return [JordanComponent((b0,), (self.p, self.k, 1, 1))] + \
+            basis = self.basis()[0:1]
+            return [JordanComponent(basis, (self.p, self.k, 1, 1))] + \
                 JordanComponent(self.basis()[1:], (self.p, self.k, self.n-1, self.eps)).decompose()
         if self._type_I:
-            b0 = self.basis()[0]
-            t_new = self.t - 1
-            if is_odd(self.k) and self.eps == -1:
-                t_new = (self.t + 4) % 8
-            if t_new == 0:
-                t_new = None
-            return [JordanComponent((b0,), (self.p, self.k, 1, 1, 1))] + \
-                JordanComponent(self.basis()[1:], (self.p, self.k, self.n - 1, self.eps,
-                                                   t_new)).decompose()
-        if self._type_II:
-            b0, b1 = self.basis()[0:2]
-            # Decide whether to decompose to a 'B' or a 'C':
-            if b0.norm() == b1.norm() == 0 and b0.dot(b1) * self.q == 1:
-                eps = 1
-            elif self.q * b0.norm() == self.q * b1.norm() == 2 and b0.dot(b1) * self.q == 1:
-                eps = -1
+            # Find the correct basis vector and t for an indecomposable type i component
+            odd_basis = [b for b in self.basis() if is_odd(b.norm()*2*self.q)]
+            if self.basis() and not odd_basis:
+                raise ValueError(f"Invalid basis for type I component. Norms: "
+                                 f"{[b.norm() for b in self.basis()]}")
+            basis_i = tuple(odd_basis[0:1])
+            other_basis = tuple([b for b in self.basis() if b not in basis_i])
+            if basis_i:
+                t_new = basis_i[0].norm()*2*self.q % 8
+            elif self.n > 2:
+                # If we have higher rank than 2 we can always fit in a component with this t
+                # However, indecomposable modules always have odd t.
+                t_new = odd_part(self.t)
+            elif self.eps == -1:
+                # At rank 2 we need to check that there are suitable values for both t.
+                if self.t in [2, 4]:
+                    t_new = 3
+                elif self.t == 6:
+                    t_new = 5
+                else:
+                    raise ValueError(f"Invalid invariants.")
+            elif self.eps == 1:
+                if self.t in [0, 2]:
+                    t_new = 1
+                elif self.t == 6:
+                    t_new = 3
+                else:
+                    raise ValueError(f"Invalid invariants.")
             else:
-                raise ArithmeticError("Component of type II not correct.")
-            return [JordanComponent((b0, b1), (self.p, self.k, 2, eps))] + \
+                raise ValueError(f"Invalid invariants.")
+            eps_new = kronecker(t_new, 2)
+            # We need to split off
+            eps_next = self.eps * eps_new
+            t_next = (self.t - t_new) % 8 or None
+            log.debug(f"t_new={t_new}")
+            log.debug(f"t_next={t_next}")
+            log.debug(f"eps_new={eps_new}")
+            log.debug(f"eps_next={eps_next}")
+            return [JordanComponent(basis_i, (self.p, self.k, 1, eps_new, t_new))] + \
+                JordanComponent(other_basis, (self.p, self.k, self.n - 1, eps_next,
+                                                   t_next)).decompose()
+        if self._type_II:
+            basis_ii = self.basis()[0:2]
+            # Decide whether to decompose to a 'B' or a 'C':
+            if basis_ii:
+                b0, b1 = basis_ii
+                if b0.norm() == b1.norm() == 0 and b0.dot(b1) * self.q == 1:
+                    eps = 1
+                elif self.q * b0.norm() == self.q * b1.norm() == b0.dot(b1) * self.q == 1:
+                    eps = -1
+                else:
+                    raise ArithmeticError(f"Component of type II not correct. Q(b0)={b0.norm()} "
+                                          f"Q(b1)={b1.norm()} B(b0,b1)={b0.dot(b1)}")
+            else:
+                # If we don't have a basis it doesn't matter which order we decompose into
+                eps = 1
+            return [JordanComponent(basis_ii, (self.p, self.k, 2, eps))] + \
                 JordanComponent(self.basis()[2:], (self.p, self.k, self.n - 2, self.eps * eps,
                                                    )).decompose()
 
-    def as_finite_quadratic_module(self):
+    def as_finite_quadratic_module(self, **kwargs):
         """
         Return this component as an ambient finite quadratic module.
 
@@ -351,7 +531,25 @@ class JordanComponent(SageObject):
              gen: e
              form: 1/8*x^2
         """
-        return self.basis()[0].parent().spawn(self.basis())[0]
+        if self.basis():
+            return self.basis()[0].parent().spawn(self.basis(), **kwargs)[0]
+        # If we have a "formal" Jordan component we decompose it and
+        # construct it as a sum.
+        if self.is_indecomposable():
+            from fqm_weil.modules.finite_quadratic_module.finite_quadratic_module_ambient import \
+                _A, _C, _B
+            if self.p > 2:
+                a = 1 if self.eps * kronecker(2, self.p) == 1 else \
+                    JordanComponent.quadratic_non_residue(self.p)
+                return _A(self.q, a, **kwargs)
+            elif self.t:
+                return _A(self.q, self.t, **kwargs)
+            elif self.eps == 1:
+                return _C(self.q, **kwargs)
+            else:
+                return _B(self.q, **kwargs)
+        else:
+            return sum(JC.as_finite_quadratic_module() for JC in self.decompose())
 
     def ambient_finite_quadratic_module(self):
         """
@@ -370,7 +568,17 @@ class JordanComponent(SageObject):
              gen: e
              form: 1/8*x^2
         """
-        return self._ambient_module
+        if self._ambient_module:
+            return self._ambient_module
+
+    @staticmethod
+    def quadratic_non_residue(p):
+        if not is_prime(p):
+            raise ValueError("p must be prime")
+        for a in range(2, 4*p):
+            if kronecker(a, p) == -1:
+                return a
+        raise ArithmeticError(f"Could not find a quadratic non-residue mod {p}")
 
     def _finite_quadratic_module_hom(self):
         """
@@ -462,19 +670,23 @@ class JordanComponent(SageObject):
         else:
             return 1
 
-    def signature(self):
+    def signature(self, check=False):
         """
         Return the p-signature of this component.
+
+        INPUT:
+
+        - ``check`` -- boolean (default: False) check if the signature correspond to the Gauss sum
 
         EXAMPLES::
 
             sage: from fqm_weil.all import FiniteQuadraticModule
             sage: A = FiniteQuadraticModule('2^2.4_1^1.3^2')
-            sage: A.jordan_decomposition()[0].signature()
+            sage: A.jordan_decomposition()[0].signature(check=True) # 2^2
             0
-            sage: A.jordan_decomposition()[1].signature()
+            sage: A.jordan_decomposition()[1].signature(check=True) # 3^2
             4
-            sage: A.jordan_decomposition()[2].signature()
+            sage: A.jordan_decomposition()[2].signature(check=True) # 4_1
             1
             sage: A.signature()
             5
@@ -482,11 +694,14 @@ class JordanComponent(SageObject):
         """
         k = 1 if self.eps ** self.k == -1 else 0
         if is_odd(self.p):
-            return (self.n * (self.q - 1) + 4 * k) % 8
+            signature = (self.n * (1 - self.q) + 4 * k) % 8
         else:
             t = self.t or 0
-            return (t + 4 * k) % 8
+            signature = (t + 4 * k) % 8
+        if check:
+            assert z8**signature == self.as_finite_quadratic_module()._gauss_sum_as_sum(1)
 
+        return signature
 
 class JordanDecomposition(SageObject):
     r"""
@@ -545,7 +760,6 @@ class JordanDecomposition(SageObject):
             def f(x, y):
                 return x.norm() * 2 * q if x == y else x.dot(y) * q
             F = matrix(ZZ, r, r, [f(x, y) for x in basis for y in basis])
-            # print("Det=",F.det())
             eps = kronecker(F.det(), p)
             genus = [p, n, r, eps]
             if 2 == p and self.is_type_I(F):
@@ -1670,10 +1884,12 @@ class JordanDecomposition(SageObject):
             [3, 3]
             sage: A = FiniteQuadraticModule('2_1^3')
             sage: A.jordan_decomposition().decompose()
-            [2_1, 2_1, 2_5^-1]
+            [2_1, 2^2]
             sage: A = FiniteQuadraticModule('2_1^-5')
             sage: A.jordan_decomposition().decompose()
-            [2_1, 2_1, 2_1, 2_1, 2_1]
+            [2_1, 2^-2, 2^2]
+            sage: JordanComponent('2_3^-3').decompose()
+            [2_3^-1, 2^2]
 
         """
         return flatten([jc.decompose() for jc in self if p0 is None or jc.p == p0])

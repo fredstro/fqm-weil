@@ -584,7 +584,7 @@ class FiniteQuadraticModule_subgroup(FiniteQuadraticModule_base):
             sage: A.<a,b,c,d> = FiniteQuadraticModule('2_2^-4'); A
             Finite quadratic module in 4 generators:
              gens: a, b, c, d
-             form: 1/4*x0^2 + 3/4*x1^2 + 3/4*x2^2 + 3/4*x3^2
+             form: 1/4*x0^2 + 1/4*x1^2 + 1/2*x2^2 + 1/2*x2*x3 + 1/2*x3^2
             sage: U = A.subgroup([a,b])
             sage: V = U.dual(); V
             < c, d >
@@ -646,7 +646,7 @@ class FiniteQuadraticModule_subgroup(FiniteQuadraticModule_base):
             ....: default_coords='fundamental'); A
             Finite quadratic module in 4 generators:
              gens: a, b, c, d
-             form: 27/92*x0^2 + 27/92*x1^2 + 73/92*x2^2 + 265/276*x3^2
+             form: 27/92*x0^2 + 1/23*x1^2 + 1/2*x1*x2 + 1/23*x2^2 + 265/276*x3^2
             sage: U = A.subgroup(A.gens()); U
             < 23*a, 22*a, 23*b, 22*b, 23*c, 22*c, 114*d, 69*d, 46*d >
             sage: U2 = U.split(2); U2
@@ -762,26 +762,26 @@ class FiniteQuadraticModule_subgroup(FiniteQuadraticModule_base):
             sage: U = A.subgroup([a+b,b+c,c+d,d+e,e+f,f+g]); U
             < a + 10*g, b + g, c + 10*g, d + g, e + 10*g, f + g >
             sage: matrix(len(U.gens()), [x.dot(y) for x in U.gens() for y in U.gens()])
-            [4/11 9/11 2/11 9/11 2/11 9/11]
-            [9/11 4/11 9/11 2/11 9/11 2/11]
-            [2/11 9/11 4/11 9/11 2/11 9/11]
-            [9/11 2/11 9/11 4/11 9/11 2/11]
-            [2/11 9/11 2/11 9/11 4/11 9/11]
-            [9/11 2/11 9/11 2/11 9/11 4/11]
+            [6/11 9/11 2/11 9/11 2/11 9/11]
+            [9/11 6/11 9/11 2/11 9/11 2/11]
+            [2/11 9/11 6/11 9/11 2/11 9/11]
+            [9/11 2/11 9/11 6/11 9/11 2/11]
+            [2/11 9/11 2/11 9/11 6/11 9/11]
+            [9/11 2/11 9/11 2/11 9/11 6/11]
             sage: og_b = U.orthogonal_basis(); og_b
-             [a + 6*b + c + 10*d + e + 10*f + g,
-             a + 6*c + 10*d + e + 10*f + g,
-             a + 4*d + e + 10*f + g,
-             a + 8*e + 10*f + g,
-             a + 2*f + g,
+            [a + 7*b + c + 10*d + e + 10*f + 2*g,
+             a + 5*c + 10*d + e + 10*f + 2*g,
+             a + 5*d + e + 10*f + 2*g,
+             a + 7*e + 10*f + 2*g,
+             a + 3*f + 2*g,
              a + 10*g]
-             sage: matrix(len(og_b), [x.dot(y) for x in og_b for y in og_b])
-             [7/11    0    0    0    0    0]
-             [   0 5/11    0    0    0    0]
-             [   0    0 7/11    0    0    0]
-             [   0    0    0 2/11    0    0]
-             [   0    0    0    0 1/11    0]
-             [   0    0    0    0    0 4/11]
+            sage: matrix(len(og_b), [x.dot(y) for x in og_b for y in og_b])
+             [ 4/11     0     0     0     0     0]
+             [    0  3/11     0     0     0     0]
+             [    0     0 10/11     0     0     0]
+             [    0     0     0  3/11     0     0]
+             [    0     0     0     0  4/11     0]
+             [    0     0     0     0     0  6/11]
         """
         if not self.as_ambient()[0].is_nondegenerate():
             raise TypeError
